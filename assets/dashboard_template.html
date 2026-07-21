@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diagnóstico Madurez de Almacenamiento — ZonaLogística</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.27.0/plotly.min.js"></script>
+<style>
+  :root{
+    --navy: #003049;
+    --navy-deep: #001E30;
+    --green: #9ACD00;
+    --yellow: #ffcb03;
+    --red: #ff0303;
+    --paper: #F4F5F7;
+    --paper-panel: #FFFFFF;
+    --ink: #1C1E21;
+    --ink-soft: #9AA1AC;
+    --rule: #E7E9EE;
+  }
+
+  *{ box-sizing: border-box; }
+
+  html, body{
+    margin:0;
+    padding:0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Poppins", Arial, sans-serif;
+  }
+
+  /* ---------- Header institucional ---------- */
+  .masthead{
+    background: linear-gradient(180deg, var(--navy) 0%, var(--navy-deep) 100%);
+    color: #fff;
+    padding: 26px 40px 22px;
+    position: relative;
+    overflow: hidden;
+  }
+  .masthead::after{
+    content:"";
+    position:absolute;
+    left:0; right:0; bottom:0;
+    height:6px;
+    background: linear-gradient(90deg, var(--red) 0 33.33%, var(--yellow) 33.33% 66.66%, var(--green) 66.66% 100%);
+  }
+  .masthead-top{
+    display:flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .masthead-eyebrow{
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #9FB6C4;
+  }
+  .masthead h1{
+    margin: 4px 0 0;
+    font-size: 32px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+  .masthead-logos{
+    display:flex;
+    align-items:center;
+    gap: 12px;
+  }
+  .masthead-logo{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background: #fff;
+    border-radius: 10px;
+    padding: 10px 18px;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.25);
+  }
+  .masthead-logo img{
+    height: 42px;
+    display:block;
+  }
+
+  /* ---------- Layout general ---------- */
+  .page{
+    max-width: 1360px;
+    margin: 0 auto;
+    padding: 28px 40px 60px;
+  }
+
+  .section-title{
+    display:flex;
+    align-items:center;
+    gap: 14px;
+    margin: 46px 0 18px;
+  }
+  .section-title .num{
+    font-size: 13px;
+    font-weight:600;
+    color: var(--paper);
+    background: var(--navy);
+    width: 26px; height:26px;
+    border-radius: 50%;
+    display:flex; align-items:center; justify-content:center;
+    flex: none;
+  }
+  .section-title h2{
+    margin:0;
+    font-size: 19px;
+    font-weight:600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--navy);
+  }
+  .section-title .rule{
+    flex:1;
+    height:1px;
+    background: var(--rule);
+  }
+
+  /* ---------- KPI gauges ---------- */
+  .kpi-row{
+    display:grid;
+    grid-template-columns: 1.25fr 1fr 1fr 1fr;
+    gap: 20px;
+  }
+  .kpi-card{
+    background: var(--paper-panel);
+    border-radius: 14px;
+    padding: 16px 12px 6px;
+    text-align:center;
+    position:relative;
+    box-shadow: 0 4px 18px rgba(16, 24, 40, 0.08), 0 1px 3px rgba(16,24,40,0.06);
+  }
+  .kpi-card.primary{ border-top: 4px solid var(--navy); }
+  .kpi-card:not(.primary){ border-top: 4px solid var(--ink-soft); }
+  .kpi-label{
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--navy);
+    min-height: 36px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .kpi-card.primary .kpi-label{ font-size: 15px; }
+
+  /* ---------- Panel genérico ---------- */
+  .panel{
+    background: var(--paper-panel);
+    border-radius: 14px;
+    padding: 8px 8px 4px;
+    box-shadow: 0 4px 18px rgba(16, 24, 40, 0.08), 0 1px 3px rgba(16,24,40,0.06);
+  }
+  .panel-title{
+    text-align:center;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--navy);
+    margin: 12px 0 0;
+  }
+
+  .grid-main{
+    display:grid;
+    grid-template-columns: 1.05fr 1fr;
+    gap: 22px;
+    align-items: stretch;
+  }
+
+  /* ---------- Dimensiones detalle ---------- */
+  .grid-dimensiones{
+    display:grid;
+    grid-template-columns: 1.15fr 1fr;
+    gap: 22px;
+  }
+  .dim-stack{
+    display:grid;
+    grid-template-rows: auto auto;
+    gap: 22px;
+  }
+  .dim-stack .row-two{
+    display:grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 22px;
+  }
+
+  /* ---------- Footer ---------- */
+  .footer{
+    margin-top: 50px;
+    padding-top: 16px;
+    border-top: 1px solid var(--rule);
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    font-size: 11.5px;
+    color: var(--ink-soft);
+    letter-spacing: 0.03em;
+  }
+  .footer .tag{
+    font-weight:600;
+    color: var(--navy);
+  }
+
+  /* ---------- Estado de carga / error ---------- */
+  #load-status{
+    max-width: 1360px;
+    margin: 0 auto;
+    padding: 14px 40px 0;
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
+  #load-status.error{
+    color: var(--red);
+    font-weight: 600;
+  }
+
+  @media (max-width: 1100px){
+    .kpi-row{ grid-template-columns: repeat(2, 1fr); }
+    .grid-main{ grid-template-columns: 1fr; }
+    .grid-dimensiones{ grid-template-columns: 1fr; }
+    .dim-stack .row-two{ grid-template-columns: 1fr; }
+    .masthead{ padding: 22px 22px 20px; }
+    .page{ padding: 22px 22px 50px; }
+  }
+</style>
+</head>
+<body>
+
+  <header class="masthead">
+    <div class="masthead-top">
+      <div>
+        <div class="masthead-eyebrow">ZONALOGÍSTICA</div>
+        <h1>Diagnóstico Madurez de Almacenamiento</h1>
+      </div>
+      <div class="masthead-logos" id="masthead-logos">
+        <!-- Los logos se inyectan dinámicamente desde los datos -->
+      </div>
+    </div>
+  </header>
+
+  <div id="load-status"></div>
+
+  <div class="page" id="page-content" style="display:none;">
+
+    <!-- ============ SECCIÓN 1: RESUMEN EJECUTIVO ============ -->
+    <div class="section-title">
+      <span class="num">1</span>
+      <h2>Resumen ejecutivo de madurez</h2>
+      <span class="rule"></span>
+    </div>
+
+    <div class="kpi-row" id="kpi-row">
+      <!-- Las tarjetas de gauge se inyectan dinámicamente desde el JSON -->
+    </div>
+
+    <!-- ============ SECCIÓN 2: CONSOLIDADO + RADAR GENERAL ============ -->
+    <div class="section-title">
+      <span class="num">2</span>
+      <h2>Consolidado de indicadores</h2>
+      <span class="rule"></span>
+    </div>
+
+    <div class="grid-main">
+      <div class="panel">
+        <div class="panel-title">Calificación vs. Benchmark por Dimensión</div>
+        <div id="barras-dimensiones" style="height:430px;"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Madurez Centros de Distribución</div>
+        <div id="radar-general" style="height:430px;"></div>
+      </div>
+    </div>
+
+    <!-- ============ SECCIÓN 3: DIMENSIONES ============ -->
+    <div class="section-title">
+      <span class="num">3</span>
+      <h2>Dimensiones de la evaluación</h2>
+      <span class="rule"></span>
+    </div>
+
+    <div class="grid-dimensiones">
+      <div class="panel">
+        <div class="panel-title">Madurez Logística</div>
+        <div id="radar-triangular" style="height:480px;"></div>
+      </div>
+
+      <div class="dim-stack">
+        <div class="panel">
+          <div class="panel-title" style="font-size:15px;">Dimensión Técnica y Operacional</div>
+          <div id="radar-tecnica" style="height:240px;"></div>
+        </div>
+        <div class="row-two">
+          <div class="panel">
+            <div class="panel-title" style="font-size:15px;">Dimensión Indicadores Claves</div>
+            <div id="radar-kpi" style="height:230px;"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-title" style="font-size:15px;">Dimensión Estructura</div>
+            <div id="radar-estructura" style="height:230px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <span class="tag">Zonalogística - LogiAnalítica</span>
+      <span>Diagnóstico generado a partir del modelo madurez de almacenamiento - Propiedad ZonaLogística</span>
+    </div>
+
+  </div>
+
+<script>
+const FONT = "Poppins, Arial, sans-serif";
+const INK_SOFT = "#9AA1AC";
+const baseConfig = {displayModeBar:false, responsive:true};
+
+/* Paleta estandarizada para TODOS los radiales y el gráfico de barras */
+const COLOR_TOP = "#9ACD00";          // Puntaje Top -> Verde
+const COLOR_MEDIA = "#0056A6";        // Puntaje en la media -> Azul oscuro
+const COLOR_CALIFICACION = "#00A3E0"; // Calificación -> Azul claro
+const COLOR_CALIFICACION_FILL = "rgba(0,163,224,0.10)";    //Relleno etiqueta clasificación
+
+/* ===================== CARGA DE DATOS =====================
+   Los datos son inyectados directamente por generar_datos.py
+   ========================================================= */
+(function(){
+  try {
+    document.getElementById("load-status").textContent = "";
+    document.getElementById("page-content").style.display = "block";
+    construirDashboard(DATOS_DIAGNOSTICO);
+  } catch(e) {
+    const el = document.getElementById("load-status");
+    el.classList.add("error");
+    el.innerHTML = "Error al construir el dashboard: " + e.message +
+      ". Asegúrate de haber ejecutado <code>python generar_datos.py</code> para generar el HTML final.";
+  }
+})();
+
+/* ===================== ORQUESTADOR PRINCIPAL ===================== */
+function construirDashboard(datos){
+  // Logos en el encabezado: primero ZonaLogística, luego la empresa evaluada
+  const logosEl = document.getElementById("masthead-logos");
+  [
+    { b64: datos.meta.logo_zona_base64, alt: "ZonaLogística" },
+    { b64: datos.meta.logo_base64,      alt: datos.meta.empresa },
+  ].forEach(logo => {
+    if (logo.b64) {
+      const div = document.createElement("div");
+      div.className = "masthead-logo";
+      div.innerHTML = `<img src="${logo.b64}" alt="${logo.alt}">`;
+      logosEl.appendChild(div);
+    }
+  });
+
+  construirGauges(datos.gauges);
+  construirBarrasDimensiones(datos.barras_dimensiones);
+  construirRadarGeneral(datos.radar_general);
+  construirRadarTriangular(datos.radar_triangular);
+  construirRadarSimple("radar-tecnica", datos.radar_tecnica, {height:240, legend:true, tickSize:9, catSize:10});
+  construirRadarSimple("radar-kpi", datos.radar_kpi, {height:230, legend:true, tickSize:8, catSize:9});
+  construirRadarEstructura(datos.radar_estructura);
+}
+
+/* ===================== 1. GAUGES ===================== */
+function construirGauges(gaugesData){
+  const kpiRow = document.getElementById("kpi-row");
+  kpiRow.innerHTML = "";
+
+  gaugesData.forEach((g, idx) => {
+    const isPrimary = idx === 0;
+    const card = document.createElement("div");
+    card.className = "kpi-card" + (isPrimary ? " primary" : "");
+    card.innerHTML = `
+      <div class="kpi-label">${g.title}</div>
+      <div id="${g.id}" style="height:${isPrimary ? 190 : 180}px;"></div>
+    `;
+    kpiRow.appendChild(card);
+
+    buildGauge(g.id, g.value, {
+      height: isPrimary ? 190 : 180,
+      numberSize: isPrimary ? 30 : 24
+    });
+  });
+}
+
+function buildGauge(divId, value, size){
+  const fig = {
+    data: [{
+      type: "indicator",
+      mode: "gauge+number",
+      value: value,
+      number: { suffix:"%", font:{family:FONT, size: size.numberSize, color:"#003049"} },
+      gauge: {
+        axis: {
+          range:[0,100],
+          visible:true,
+          ticksuffix:"%",
+          tickfont:{family:FONT, size:9, color: INK_SOFT},
+          dtick: 20
+        },
+        bar: { color:"#003049", thickness:0.30 },
+        bgcolor: "white",
+        borderwidth: 0,
+        steps: [
+          {range:[0,64],  color:"#ff0303"},   // Rojo:    0% – 64%
+          {range:[64,85], color:"#ffcb03"},   // Amarillo: 65% – 85%
+          {range:[85,100],color:"#a8dc00"}    // Verde:   86% – 100%
+        ]
+      }
+    }],
+    layout: {
+      margin:{t:6,b:18,l:24,r:24},
+      height: size.height,
+      font:{family:FONT},
+      paper_bgcolor:"rgba(0,0,0,0)"
+    }
+  };
+  Plotly.newPlot(divId, fig.data, fig.layout, baseConfig);
+}
+
+/* ===================== 2. GRÁFICO DE BARRAS AGRUPADAS ===================== */
+function construirBarrasDimensiones(b){
+  const data = [
+    {
+      type: "bar",
+      x: b.categorias,
+      y: b.puntaje_top,
+      name: "Puntaje Top ",
+      marker: { color: COLOR_TOP },
+      text: b.puntaje_top.map(v => v + "%"),
+      textposition: "outside",
+      textfont: { family: FONT, size: 11, color: INK_SOFT }
+    },
+    {
+      type: "bar",
+      x: b.categorias,
+      y: b.puntaje_media,
+      name: "Puntaje media ",
+      marker: { color: COLOR_MEDIA },
+      text: b.puntaje_media.map(v => v + "%"),
+      textposition: "outside",
+      textfont: { family: FONT, size: 11, color: INK_SOFT }
+    },
+    {
+      type: "bar",
+      x: b.categorias,
+      y: b.calificacion,
+      name: "Calificación ",
+      marker: { color: COLOR_CALIFICACION },
+      text: b.calificacion.map(v => v + "%"),
+      textposition: "outside",
+      textfont: { family: FONT, size: 11, color: INK_SOFT }
+    }
+  ];
+
+  const layout = {
+    barmode: "group",
+    bargap: 0.22,
+    bargroupgap: 0.12,
+    yaxis: {
+      range: [0, 110],
+      ticksuffix: "%",
+      tickfont: { family: FONT, size: 11, color: INK_SOFT },
+      gridcolor: "#EEF0F3"
+    },
+    xaxis: {
+      tickfont: { family: FONT, size: 11, color: INK_SOFT }
+    },
+    font: { family: FONT },
+    showlegend: true,
+    legend: {
+      font: { family: FONT, size: 11, color: INK_SOFT },
+      orientation: "h",
+      yanchor: "bottom", y: -0.28,
+      xanchor: "center", x: 0.5
+    },
+    margin: { t: 20, b: 10, l: 45, r: 50 },
+    height: 430,
+    paper_bgcolor: "rgba(0,0,0,0)",
+    plot_bgcolor: "rgba(0,0,0,0)"
+  };
+
+  Plotly.newPlot("barras-dimensiones", data, layout, baseConfig);
+}
+
+/* ===================== 3. RADAR GENERAL (13 ejes) ===================== */
+function construirRadarGeneral(r){
+  const cerrar = arr => arr.concat([arr[0]]);
+  const catC = cerrar(r.categorias);
+
+  const data = [
+    {
+      type:"scatterpolar", r:cerrar(r.puntaje_top), theta:catC, fill:"none",
+      line:{color:COLOR_TOP, width:3},
+      marker:{size:5, color:COLOR_TOP}, name:"Puntaje Top "
+    },
+    {
+      type:"scatterpolar", r:cerrar(r.puntaje_media), theta:catC, fill:"none",
+      line:{color:COLOR_MEDIA, width:3},
+      marker:{size:5, color:COLOR_MEDIA}, name:"Puntaje media "
+    },
+    {
+      type:"scatterpolar", r:cerrar(r.calificacion), theta:catC, fill:"toself",
+      fillcolor:COLOR_CALIFICACION_FILL,
+      line:{color:COLOR_CALIFICACION, width:3},
+      marker:{size:6, color:COLOR_CALIFICACION}, name:"Calificación "
+    }
+  ];
+
+  const layout = {
+    polar:{
+      radialaxis:{visible:true, range:[0,100], ticksuffix:"%", tickfont:{family:FONT, size:10, color:INK_SOFT}},
+      angularaxis:{tickfont:{family:FONT, size:11, color:INK_SOFT}, linewidth:0.5}
+    },
+    font:{family:FONT},
+    showlegend:true,
+    legend:{font:{family:FONT, size:11, color:INK_SOFT}, orientation:"h", yanchor:"bottom", y:-0.22, xanchor:"center", x:0.5},
+    margin:{t:20,b:10,l:40,r:60},
+    height:430,
+    paper_bgcolor:"rgba(0,0,0,0)"
+  };
+
+  Plotly.newPlot("radar-general", data, layout, baseConfig);
+}
+
+/* ===================== 4. RADAR TRIANGULAR (3 ejes, 3 capas) ===================== */
+function construirRadarTriangular(r){
+  const cerrar = arr => arr.concat([arr[0]]);
+  const catC = cerrar(r.categorias);
+
+  const data = [
+    {type:"scatterpolar", r:cerrar(r.puntaje_top), theta:catC, fill:"none",
+     line:{color:COLOR_TOP, width:3}, marker:{size:5, color:COLOR_TOP}, name:"Puntaje Top "},
+    {type:"scatterpolar", r:cerrar(r.puntaje_media), theta:catC, fill:"none",
+     line:{color:COLOR_MEDIA, width:3}, marker:{size:5, color:COLOR_MEDIA}, name:"Puntaje media "},
+    {type:"scatterpolar", r:cerrar(r.calificacion), theta:catC, fill:"toself",
+     fillcolor:COLOR_CALIFICACION_FILL,
+     line:{color:COLOR_CALIFICACION, width:3}, marker:{size:6, color:COLOR_CALIFICACION}, name:"Calificación "}
+  ];
+
+  const layout = {
+    polar:{
+      gridshape:"linear",
+      radialaxis:{visible:true, range:[0,100], ticksuffix:"%", tickfont:{family:FONT, size:10, color:INK_SOFT}, angle:90, tickangle:0},
+      angularaxis:{tickfont:{family:FONT, size:12, color:INK_SOFT}, linewidth:0.5}
+    },
+    font:{family:FONT},
+    showlegend:true,
+    legend:{font:{family:FONT, size:11, color:INK_SOFT}, orientation:"h", yanchor:"top", y:-0.13, xanchor:"center", x:0.5},
+    margin:{t:20,b:50,l:50,r:70},
+    height:480,
+    paper_bgcolor:"rgba(0,0,0,0)"
+  };
+
+  Plotly.newPlot("radar-triangular", data, layout, baseConfig);
+}
+
+/* ===================== 5/6. RADAR SIMPLE (5 o 6 ejes, 3 capas) ===================== */
+function construirRadarSimple(divId, r, opts){
+  const cerrar = arr => arr.concat([arr[0]]);
+  const catC = cerrar(r.categorias);
+
+  const data = [
+    {type:"scatterpolar", r:cerrar(r.puntaje_top), theta:catC, fill:"none",
+     line:{color:COLOR_TOP, width:3}, marker:{size:5, color:COLOR_TOP}, name:"Puntaje Top "},
+    {type:"scatterpolar", r:cerrar(r.puntaje_media), theta:catC, fill:"none",
+     line:{color:COLOR_MEDIA, width:3}, marker:{size:5, color:COLOR_MEDIA}, name:"Puntaje media "},
+    {type:"scatterpolar", r:cerrar(r.calificacion), theta:catC, fill:"toself",
+     fillcolor:COLOR_CALIFICACION_FILL,
+     line:{color:COLOR_CALIFICACION, width:3}, marker:{size:6, color:COLOR_CALIFICACION}, name:"Calificación "}
+  ];
+
+  const layout = {
+    polar:{
+      radialaxis:{visible:true, range:[0,100], ticksuffix:"%", tickfont:{family:FONT, size:opts.tickSize, color:INK_SOFT}},
+      angularaxis:{tickfont:{family:FONT, size:opts.catSize, color:INK_SOFT}, linewidth:0.5}
+    },
+    font:{family:FONT},
+    showlegend:opts.legend,
+    legend: opts.legend ? {font:{family:FONT, size:8, color:INK_SOFT}, orientation:"h", yanchor:"bottom", y:-0.38, xanchor:"center", x:0.5} : undefined,
+    margin:{t:10,b:55,l:35,r:55},
+    height:opts.height,
+    paper_bgcolor:"rgba(0,0,0,0)"
+  };
+
+  Plotly.newPlot(divId, data, layout, baseConfig);
+}
+
+/* ===================== 7. RADAR DIMENSIÓN ESTRUCTURA (3 ejes) ===================== */
+function construirRadarEstructura(r){
+  const cerrar = arr => arr.concat([arr[0]]);
+  const catC = cerrar(r.categorias);
+
+  const data = [
+    {type:"scatterpolar", r:cerrar(r.puntaje_top), theta:catC, fill:"none",
+     line:{color:COLOR_TOP, width:3}, marker:{size:7, color:COLOR_TOP}, name:"Puntaje Top "},
+    {type:"scatterpolar", r:cerrar(r.puntaje_media), theta:catC, fill:"none",
+     line:{color:COLOR_MEDIA, width:3}, marker:{size:7, color:COLOR_MEDIA}, name:"Puntaje media "},
+    {type:"scatterpolar", r:cerrar(r.calificacion), theta:catC, fill:"toself",
+     fillcolor:COLOR_CALIFICACION_FILL,
+     line:{color:COLOR_CALIFICACION, width:3}, marker:{size:8, color:COLOR_CALIFICACION}, name:"Calificación "}
+  ];
+
+  const layout = {
+    polar:{
+      gridshape:"linear",
+      radialaxis:{visible:true, range:[0,100], ticksuffix:"%", tickfont:{family:FONT, size:8, color:INK_SOFT}},
+      angularaxis:{tickfont:{family:FONT, size:10, color:INK_SOFT}, linewidth:0.5}
+    },
+    font:{family:FONT},
+    showlegend:true,
+    legend:{font:{family:FONT, size:8, color:INK_SOFT}, orientation:"h", yanchor:"bottom", y:-0.45, xanchor:"center", x:0.5},
+    margin:{t:10,b:60,l:30,r:50},
+    height:230,
+    paper_bgcolor:"rgba(0,0,0,0)"
+  };
+
+  Plotly.newPlot("radar-estructura", data, layout, baseConfig);
+}
+</script>
+
+</body>
+</html>
