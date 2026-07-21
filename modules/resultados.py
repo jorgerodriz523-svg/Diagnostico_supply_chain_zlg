@@ -68,9 +68,9 @@ def _gauge_svg(value: float, titulo: str) -> str:
         f'<path d="M{x0},{cy} A{r},{r} 0 0,1 {x64:.2f},{y64:.2f}" fill="none" stroke="#FF0303" stroke-width="{grosor}" stroke-linecap="round"/>'
         f'<path d="M{x64:.2f},{y64:.2f} A{r},{r} 0 0,1 {x85:.2f},{y85:.2f}" fill="none" stroke="#FFCB03" stroke-width="{grosor}" stroke-linecap="round"/>'
         f'<path d="M{x85:.2f},{y85:.2f} A{r},{r} 0 0,1 {x100},{cy}" fill="none" stroke="#A8DC00" stroke-width="{grosor}" stroke-linecap="round"/>'
-        f'<line x1="{cx}" y1="{cy}" x2="{xv:.2f}" y2="{yv:.2f}" stroke="#07234c" stroke-width="3" stroke-linecap="round"/>'
-        f'<circle cx="{cx}" cy="{cy}" r="5" fill="#07234c"/>'
-        f'<text x="{cx}" y="82" text-anchor="middle" font-family="Poppins,Arial" font-size="22" font-weight="700" fill="#07234c">{value:.1f}%</text>'
+        f'<line x1="{cx}" y1="{cy}" x2="{xv:.2f}" y2="{yv:.2f}" stroke="#003049" stroke-width="3" stroke-linecap="round"/>'
+        f'<circle cx="{cx}" cy="{cy}" r="5" fill="#003049"/>'
+        f'<text x="{cx}" y="82" text-anchor="middle" font-family="Poppins,Arial" font-size="22" font-weight="700" fill="#003049">{value:.1f}%</text>'
         f'<text x="{cx}" y="108" text-anchor="middle" font-family="Poppins,Arial" font-size="8.5" fill="#6B7280">{titulo}</text>'
         '</svg>'
     )
@@ -89,12 +89,12 @@ def render():
 
     /* Hero score */
     .zl-hero {
-        background: #07234c; border-radius: 16px;
+        background: #003049; border-radius: 16px;
         padding: 2rem 2rem 1.5rem 2rem; text-align: center;
         margin-bottom: 1.5rem;
     }
     .zl-hero-empresa {
-        color: #f2a02e; font-family: 'Poppins',sans-serif;
+        color: #A8DC00; font-family: 'Poppins',sans-serif;
         font-size: 0.85rem; font-weight: 600; text-transform: uppercase;
         letter-spacing: 0.1em; margin-bottom: 0.3rem;
     }
@@ -113,7 +113,7 @@ def render():
     }
     .zl-dim-nombre {
         font-family: 'Poppins',sans-serif; font-size: 0.82rem;
-        font-weight: 600; color: #07234c; margin-bottom: 0.5rem;
+        font-weight: 600; color: #003049; margin-bottom: 0.5rem;
     }
     .zl-dim-nivel {
         display: inline-block;
@@ -125,12 +125,12 @@ def render():
     /* Sección estrategias */
     .zl-seccion-titulo {
         font-family: 'Poppins',sans-serif; font-size: 1.1rem;
-        font-weight: 700; color: #07234c; margin: 1.5rem 0 0.5rem 0;
+        font-weight: 700; color: #003049; margin: 1.5rem 0 0.5rem 0;
     }
     .estrategia-card {
         background: #ffffff; border-radius: 12px;
         padding: 1rem 1.2rem; margin-bottom: 0.75rem;
-        border-left: 4px solid #07234c;
+        border-left: 4px solid #003049;
         box-shadow: 0 1px 4px rgba(0,48,73,0.06);
     }
     .estrategia-card.critica  { border-left-color: #FF0303; }
@@ -167,7 +167,7 @@ def render():
     }
     .zl-descarga-titulo {
         font-family: 'Poppins',sans-serif; font-size: 1rem;
-        font-weight: 700; color: #07234c; margin-bottom: 1rem;
+        font-weight: 700; color: #003049; margin-bottom: 1rem;
     }
 
     /* Botones de descarga */
@@ -178,7 +178,7 @@ def render():
         padding: 0.6rem 1rem !important;
     }
     .st-key-dl_html .stDownloadButton > button {
-        background: #07234c !important; color: #ffffff !important;
+        background: #003049 !important; color: #ffffff !important;
         border: none !important;
     }
     .st-key-dl_pptx .stDownloadButton > button {
@@ -192,8 +192,8 @@ def render():
 
     /* Botón nuevo diagnóstico */
     .st-key-btn_nuevo .stButton > button {
-        background: transparent !important; color: #07234c !important;
-        border: 2px solid #07234c !important; border-radius: 10px !important;
+        background: transparent !important; color: #003049 !important;
+        border: 2px solid #003049 !important; border-radius: 10px !important;
         font-family: 'Poppins',sans-serif !important; font-weight: 600 !important;
         width: 100% !important; margin-top: 1rem !important;
     }
@@ -288,7 +288,7 @@ def render():
     with col_g:
         st.markdown(_gauge_svg(score_general, "Madurez General"), unsafe_allow_html=True)
     with col_info:
-        color_nm, bg_nm = NIVEL_COLOR.get(nm_general["etiqueta"], ("#07234c", "#F4F5F7"))
+        color_nm, bg_nm = NIVEL_COLOR.get(nm_general["etiqueta"], ("#003049", "#F4F5F7"))
         st.markdown(f"""
         <div style="padding: 1.5rem 0;">
             <div style="font-family:Poppins,sans-serif; font-size:0.82rem;
@@ -315,7 +315,7 @@ def render():
     cols_dim    = st.columns(len(dimensiones))
     for col, (id_dim, data) in zip(cols_dim, dimensiones.items()):
         nm    = nivel_madurez(data["score"])
-        c_txt, c_bg = NIVEL_COLOR.get(nm["etiqueta"], ("#07234c", "#F4F5F7"))
+        c_txt, c_bg = NIVEL_COLOR.get(nm["etiqueta"], ("#003049", "#F4F5F7"))
         with col:
             st.markdown(_gauge_svg(data["score"], data["nombre"]), unsafe_allow_html=True)
             st.markdown(

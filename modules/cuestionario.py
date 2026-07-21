@@ -16,7 +16,7 @@ NIVEL_LABELS = {
     2: ("2 — Básico",           "#FFCB03", "🟡"),
     3: ("3 — En desarrollo",    "#7BC67E", "🟢"),
     4: ("4 — Avanzado",         "#2E7D32", "🟢"),
-    5: ("5 — Óptimo",           "#07234c", "⭐"),
+    5: ("5 — Óptimo",           "#003049", "⭐"),
 }
 
 # Color del indicador de nivel debajo del selectbox de calificación
@@ -24,7 +24,7 @@ NIVEL_COLOR_INDICADOR = {
     0: "#FF0303", 1: "#FF0303",
     2: "#FFCB03",
     3: "#7BC67E",
-    4: "#07234c", 5: "#07234c",
+    4: "#003049", 5: "#003049",
 }
 
 
@@ -41,7 +41,7 @@ def render():
     /* Módulo y progreso */
     .zl-modulo-tag {
         display: inline-block;
-        background: #07234c; color: #f2a02e;
+        background: #003049; color: #A8DC00;
         font-family: 'Poppins', sans-serif; font-size: 0.75rem; font-weight: 700;
         padding: 3px 14px; border-radius: 20px; margin-bottom: 0.5rem;
         letter-spacing: 0.05em; text-transform: uppercase;
@@ -55,7 +55,7 @@ def render():
         margin-bottom: 1.5rem;
     }
     .zl-prog-bar-fill {
-        background: linear-gradient(to right, #07234c, #f2a02e);
+        background: linear-gradient(to right, #003049, #A8DC00);
         border-radius: 99px; height: 6px; transition: width 0.4s;
     }
 
@@ -73,7 +73,7 @@ def render():
     }
     .zl-q-texto {
         font-family: 'Poppins', sans-serif; font-size: 1.08rem; font-weight: 600;
-        color: #07234c; line-height: 1.5; margin-bottom: 0.5rem;
+        color: #003049; line-height: 1.5; margin-bottom: 0.5rem;
     }
     .zl-q-subdim {
         display: inline-block;
@@ -95,10 +95,10 @@ def render():
 
     /* Selectbox de calificación */
     .stSelectbox > div > div {
-        border: 1.5px solid #07234c !important;
+        border: 1.5px solid #003049 !important;
         border-radius: 8px !important;
         font-family: 'Poppins', sans-serif !important;
-        color: #07234c !important;
+        color: #003049 !important;
         background: #ffffff !important;
         width: 100% !important;
     }
@@ -114,7 +114,7 @@ def render():
         border: 1px solid #E5E7EB;
     }
     .zl-guia-tabla-header {
-        background: #07234c; color: #ffffff;
+        background: #003049; color: #ffffff;
         padding: 0.5rem 1rem;
         font-family: 'Poppins', sans-serif;
         font-size: 0.82rem; font-weight: 600;
@@ -127,7 +127,7 @@ def render():
     .zl-guia-fila:last-child { border-bottom: none; }
     .zl-guia-fila-sel {
         background: #EEF3F6;
-        border-left: 4px solid #07234c;
+        border-left: 4px solid #003049;
     }
     .zl-guia-fila-normal {
         background: #F9FAFB;
@@ -157,7 +157,7 @@ def render():
         width: 100% !important;
     }
     .st-key-btn_siguiente .stButton > button {
-        background: #07234c !important; color: #ffffff !important;
+        background: #003049 !important; color: #ffffff !important;
         border: none !important;
     }
     .st-key-btn_siguiente .stButton > button:hover { background: #004d6e !important; }
@@ -166,10 +166,10 @@ def render():
         border: 1.5px solid #D1D5DB !important;
     }
     .st-key-btn_anterior .stButton > button:hover {
-        background: #F3F4F6 !important; color: #07234c !important;
+        background: #F3F4F6 !important; color: #003049 !important;
     }
     .st-key-btn_finalizar .stButton > button {
-        background: #f2a02e !important; color: #07234c !important;
+        background: #A8DC00 !important; color: #003049 !important;
         border: none !important;
     }
     .st-key-btn_finalizar .stButton > button:hover { background: #8FBB00 !important; }
@@ -277,9 +277,9 @@ def render():
             )
             nivel = int(opcion_sel[0])
 
-            color_ind = NIVEL_COLOR_INDICADOR.get(nivel, "#07234c")
-            emoji_ind = NIVEL_LABELS.get(nivel, (str(nivel), "#07234c", ""))[2]
-            etiqueta_ind = NIVEL_LABELS.get(nivel, (str(nivel), "#07234c", ""))[0].split("—", 1)[-1].strip()
+            color_ind = NIVEL_COLOR_INDICADOR.get(nivel, "#003049")
+            emoji_ind = NIVEL_LABELS.get(nivel, (str(nivel), "#003049", ""))[2]
+            etiqueta_ind = NIVEL_LABELS.get(nivel, (str(nivel), "#003049", ""))[0].split("—", 1)[-1].strip()
             st.markdown(
                 f'<p class="zl-nivel-indicador" style="color:{color_ind};">'
                 f'{emoji_ind} {etiqueta_ind}</p>',
@@ -293,9 +293,9 @@ def render():
         filas_html = ""
         for _, fila in ops_preg.iterrows():
             nivel_fila = int(fila["Nivel (0-5)"])
-            etiqueta = NIVEL_LABELS.get(nivel_fila, (str(nivel_fila), "#07234c", ""))[0]
-            color_fila = NIVEL_LABELS.get(nivel_fila, (str(nivel_fila), "#07234c", ""))[1]
-            emoji = NIVEL_LABELS.get(nivel_fila, ("", "#07234c", ""))[2]
+            etiqueta = NIVEL_LABELS.get(nivel_fila, (str(nivel_fila), "#003049", ""))[0]
+            color_fila = NIVEL_LABELS.get(nivel_fila, (str(nivel_fila), "#003049", ""))[1]
+            emoji = NIVEL_LABELS.get(nivel_fila, ("", "#003049", ""))[2]
             guia = str(fila.get("Guía para el cliente", "")).strip()
             if "si:" in guia.lower():
                 guia = guia.split("si:", 1)[-1].strip()

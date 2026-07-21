@@ -56,7 +56,7 @@ def render():
         font-family: 'Poppins', sans-serif;
         font-size: 1.35rem;
         font-weight: 700;
-        color: #07234c;
+        color: #003049;
         margin-bottom: 0.2rem;
         text-align: center;
     }
@@ -79,11 +79,11 @@ def render():
         cursor: pointer;
     }
     .modulo-card:hover {
-        border-color: #07234c;
+        border-color: #003049;
         box-shadow: 0 4px 16px rgba(0,48,73,0.10);
     }
     .modulo-card.seleccionado {
-        border-color: #07234c;
+        border-color: #003049;
         background: #EEF3F6;
         box-shadow: 0 4px 16px rgba(0,48,73,0.12);
     }
@@ -101,7 +101,7 @@ def render():
         font-family: 'Poppins', sans-serif;
         font-size: 1rem;
         font-weight: 700;
-        color: #07234c;
+        color: #003049;
         margin-bottom: 0.3rem;
     }
     .modulo-desc {
@@ -135,7 +135,7 @@ def render():
 
     /* Botón principal */
     .stButton > button {
-        background: #07234c !important;
+        background: #003049 !important;
         color: #ffffff !important;
         font-family: 'Poppins', sans-serif !important;
         font-weight: 600 !important;
@@ -157,7 +157,7 @@ def render():
     }
     .st-key-btn_volver .stButton > button:hover {
         background: #F3F4F6 !important;
-        color: #07234c !important;
+        color: #003049 !important;
     }
 
     .zl-error {
@@ -173,11 +173,11 @@ def render():
 
     /* Card especial: Supply Chain (módulo paraguas) */
     .modulo-card.modulo-card-supply-chain {
-        border: 3px solid #f2a02e;
+        border: 3px solid #A8DC00;
     }
     .modulo-card.modulo-card-supply-chain.seleccionado {
         background: #F0F7E6;
-        border-color: #f2a02e;
+        border-color: #A8DC00;
         box-shadow: 0 4px 16px rgba(168,220,0,0.25);
     }
     .badge-supply-chain {
@@ -200,7 +200,7 @@ def render():
 
     .zl-info-supply {
         background: #F0F7E6;
-        border-left: 4px solid #f2a02e;
+        border-left: 4px solid #A8DC00;
         border-radius: 8px;
         padding: 0.65rem 1rem;
         font-family: 'Poppins', sans-serif;

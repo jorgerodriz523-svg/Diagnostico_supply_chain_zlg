@@ -34,7 +34,7 @@ def _sidebar_css():
     <style>
     section[data-testid="stSidebar"],
     section[data-testid="stSidebar"][aria-expanded="false"] {
-        background: #07234c !important;
+        background: #003049 !important;
         min-width: 272px !important;
         max-width: 272px !important;
         width: 272px !important;
@@ -63,7 +63,7 @@ def _sidebar_css():
         color: #ffffff; font-size: 0.86rem; font-weight: 600; margin: 0;
     }
     .zl-side-user-empresa {
-        color: #f2a02e; font-size: 0.76rem; font-weight: 500; margin: 0.15rem 0 0 0;
+        color: #A8DC00; font-size: 0.76rem; font-weight: 500; margin: 0.15rem 0 0 0;
     }
 
     .zl-nav-item, .zl-nav-item-active {
@@ -74,7 +74,7 @@ def _sidebar_css():
     }
     .zl-nav-item { color: rgba(255,255,255,0.72); }
     .zl-nav-item-active {
-        background: #f2a02e; color: #07234c !important; font-weight: 700;
+        background: #A8DC00; color: #003049 !important; font-weight: 700;
     }
 
     section[data-testid="stSidebar"] .stButton > button {
@@ -101,7 +101,7 @@ def _sidebar_css():
         padding: 0.32rem 0.9rem 0.32rem 2.3rem;
         font-size: 0.78rem; color: rgba(255,255,255,0.5);
     }
-    .zl-sub-item-actual { color: #f2a02e !important; font-weight: 700; }
+    .zl-sub-item-actual { color: #A8DC00 !important; font-weight: 700; }
     .zl-sub-item-hecho { color: rgba(255,255,255,0.85) !important; }
 
     .zl-nav-sep {
@@ -111,7 +111,7 @@ def _sidebar_css():
 
     /* Árbol de navegación del cuestionario */
     .zl-side-modulo-tag {
-        font-family: 'Poppins', sans-serif; font-weight: 700; color: #f2a02e;
+        font-family: 'Poppins', sans-serif; font-weight: 700; color: #A8DC00;
         font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em;
         margin: 0 0.25rem 0.75rem 0.25rem;
     }
@@ -134,7 +134,7 @@ def _sidebar_css():
         box-shadow: none !important; margin: 0.4rem 0 0 0 !important;
     }
     [class*="st-key-navdim_"] .stButton > button:hover {
-        color: #f2a02e !important; background: rgba(255,255,255,0.06) !important;
+        color: #A8DC00 !important; background: rgba(255,255,255,0.06) !important;
     }
 
     /* Árbol de preguntas: implementado con st.radio en lugar de st.button
@@ -164,7 +164,7 @@ def _sidebar_css():
         color: #9AA1AC; transform: none !important;
     }
     [class*="st-key-navradio_"] [data-testid="stRadioOption"]:has(input:checked) [data-testid="stMarkdownContainer"] p {
-        color: #c5e0f1 !important; font-weight: 700 !important;
+        color: #FFCB03 !important; font-weight: 700 !important;
     }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -195,7 +195,7 @@ def _formatear_opcion_arbol(id_p: str, respuestas: dict, id_actual: str | None) 
     if id_p == id_actual:
         return label
     if id_p in respuestas:
-        return f':color[● {label}]{{foreground="#f2a02e"}}'
+        return f':color[● {label}]{{foreground="#A8DC00"}}'
     return f':color[○ {label}]{{foreground="#9AA1AC"}}'
 
 
@@ -253,7 +253,7 @@ def _render_arbol_cuestionario(id_modulo: str, mod_idx_actual: int, preg_idx_act
             if str(fila["ID Pregunta"]).strip() in respuestas
         )
         completa = total_dim > 0 and respondidas_dim == total_dim
-        color_conteo = "#f2a02e" if completa else "#9AA1AC"
+        color_conteo = "#A8DC00" if completa else "#9AA1AC"
         es_dim_actual = (id_dim == dim_actual)
 
         # Dimensión desplegable: botón-toggle propio (no st.expander, cuyo ícono
@@ -373,11 +373,11 @@ def render_content_header(titulo: str):
     }}
     .zl-content-titulo {{
         font-family: 'Poppins', sans-serif; font-size: 1.3rem; font-weight: 700;
-        color: #07234c; margin: 0;
+        color: #003049; margin: 0;
     }}
     .zl-content-badge {{
-        background: rgba(0,48,73,0.08); border: 1px solid #07234c;
-        color: #07234c; font-family: 'Poppins', sans-serif; font-size: 0.78rem;
+        background: rgba(0,48,73,0.08); border: 1px solid #003049;
+        color: #003049; font-family: 'Poppins', sans-serif; font-size: 0.78rem;
         font-weight: 600; padding: 4px 14px; border-radius: 20px;
     }}
     </style>

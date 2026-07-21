@@ -153,7 +153,7 @@ def render():
         font-family: 'Poppins', sans-serif;
         font-size: 1.4rem;
         font-weight: 700;
-        color: #07234c;
+        color: #003049;
         margin-bottom: 0.25rem;
     }
     .zl-card-subtitulo {
@@ -171,7 +171,7 @@ def render():
         font-family: 'Poppins', sans-serif;
         font-size: 0.82rem;
         font-weight: 600;
-        color: #07234c;
+        color: #003049;
         margin-bottom: 0.25rem;
         text-transform: uppercase;
         letter-spacing: 0.06em;
@@ -190,11 +190,11 @@ def render():
         border-radius: 8px !important;
         font-family: 'Poppins', sans-serif !important;
         font-size: 0.92rem !important;
-        color: #07234c !important;
+        color: #003049 !important;
         padding: 0.55rem 0.85rem !important;
     }
     .stTextInput input:focus {
-        border-color: #07234c !important;
+        border-color: #003049 !important;
         box-shadow: 0 0 0 3px rgba(0,48,73,0.12) !important;
     }
     .stSelectbox > div > div {
@@ -205,7 +205,7 @@ def render():
 
     /* Botón principal */
     .stButton > button {
-        background: #07234c !important;
+        background: #003049 !important;
         color: #ffffff !important;
         font-family: 'Poppins', sans-serif !important;
         font-weight: 600 !important;
