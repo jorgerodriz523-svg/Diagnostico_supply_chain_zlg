@@ -20,7 +20,7 @@ from generar_datos  import (
 )
 from modules.layout import render_sidebar, render_content_header
 
-LOGO_ZL   = str(Path(__file__).parent.parent / "assets" / "logo_vuon.png")
+LOGO_ZL   = str(Path(__file__).parent.parent / "assets" / "logo_zonalogistica.png")
 TEMPLATE  = str(Path(__file__).parent.parent / "assets" / "dashboard_template.html")
 
 NIVEL_COLOR = {

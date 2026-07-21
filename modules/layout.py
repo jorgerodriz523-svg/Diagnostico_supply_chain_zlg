@@ -18,7 +18,7 @@ from pathlib import Path
 
 from utils.loader import get_preguntas, get_dimensiones
 
-LOGO_ZL = Path(__file__).parent.parent / "assets" / "logo_vuon.png"
+LOGO_ZL = Path(__file__).parent.parent / "assets" / "logo_zonalogistica.png"
 
 NOMBRE_MODULO = {
     "MOD-01": "Almacenamiento",

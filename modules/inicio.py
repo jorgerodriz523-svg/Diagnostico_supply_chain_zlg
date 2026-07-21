@@ -11,7 +11,7 @@ from pathlib import Path
 
 from modules.layout import render_sidebar, render_content_header
 
-LOGO_ZL = Path(__file__).parent.parent / "assets" / "logo_vuon.png"
+LOGO_ZL = Path(__file__).parent.parent / "assets" / "logo_zonalogistica.png"
 
 # Sectores económicos para el selector (clasificación ISIC Rev. 4 de la ONU)
 SECTORES = [
