@@ -196,8 +196,8 @@ def _formatear_opcion_arbol(id_p: str, respuestas: dict, id_actual: str | None) 
     if id_p == id_actual:
         return label
     if id_p in respuestas:
-        return f':color[● {label}]{{foreground="#A8DC00"}}'
-    return f':color[○ {label}]{{foreground="#9AA1AC"}}'
+        return f':green[● {label}]'
+    return f':gray[○ {label}]'
 
 
 def _on_navtree_radio_change(radio_key: str, idx_por_id: dict, mod_idx_actual: int):
