@@ -24,3 +24,4 @@ Thumbs.db
 
 # Instrucciones claude
 instrucciones.md
+.streamlit/secrets.toml
