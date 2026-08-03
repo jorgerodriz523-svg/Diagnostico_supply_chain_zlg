@@ -123,6 +123,7 @@ def _sidebar_css():
     .zl-side-dim-count {
         font-family: 'Poppins', sans-serif; font-size: 0.78rem; font-weight: 600;
         text-align: right; margin: 0.85rem 0.25rem 0 0;
+        white-space: nowrap;
     }
     /* Botón-toggle de dimensión (desplegable, sin depender de íconos nativos) */
     [class*="st-key-navdim_"] .stButton > button {
