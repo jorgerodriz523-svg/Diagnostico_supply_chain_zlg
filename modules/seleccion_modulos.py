@@ -7,7 +7,11 @@ etiqueta "Próximamente".
 """
 
 import streamlit as st
-from utils.loader import get_modulos
+from utils.loader import get_modulos, get_preguntas
+from utils.db import (
+    buscar_borrador_modulo, crear_o_reabrir_diagnostico,
+    obtener_respuestas_diagnostico, descartar_diagnostico,
+)
 from modules.layout import render_sidebar, render_content_header
 
 
@@ -41,6 +45,73 @@ MODULO_META = {
         "descripcion": "Diagnóstico de la red de distribución y gestión del último kilómetro.",
     },
 }
+
+
+def _primera_posicion_sin_responder(modulos_activos, respuestas_guardadas):
+    """
+    Recorre los módulos seleccionados en orden y devuelve (modulo_idx,
+    pregunta_idx) de la primera pregunta que todavía no tiene respuesta
+    guardada. Si todas las preguntas ya están respondidas, devuelve (0, 0).
+    """
+    for i, id_m in enumerate(modulos_activos):
+        ids_preguntas = get_preguntas(id_m)["ID Pregunta"].str.strip().tolist()
+        for j, id_p in enumerate(ids_preguntas):
+            if id_p not in respuestas_guardadas:
+                return i, j
+    return 0, 0
+
+
+def _iniciar_cuestionario(modulos_activos, retomar, borradores_detectados=None):
+    """
+    Crea o reabre el diagnóstico del cliente actual, reconstruye (si
+    corresponde) las respuestas ya guardadas y ubica el cursor en la
+    primera pregunta pendiente antes de pasar a la pantalla del
+    cuestionario.
+    """
+    borradores_detectados = borradores_detectados or {}
+
+    if not retomar:
+        # El usuario eligió "Comenzar de nuevo": los borradores detectados
+        # para los módulos seleccionados quedan descartados (se conservan
+        # para trazabilidad, no se borran).
+        ids_a_descartar = {info["id_diagnostico"] for info in borradores_detectados.values()}
+        for id_diag in ids_a_descartar:
+            descartar_diagnostico(id_diag)
+
+    id_diagnostico = crear_o_reabrir_diagnostico(
+        empresa=st.session_state.get("empresa", ""),
+        responsable=st.session_state.get("responsable", ""),
+        sector=st.session_state.get("sector", ""),
+        correo=st.session_state.get("correo", ""),
+        cargo=st.session_state.get("cargo", ""),
+        celular=st.session_state.get("celular", ""),
+        pais=st.session_state.get("pais", ""),
+        ciudad=st.session_state.get("ciudad", ""),
+        modulos_seleccionados=modulos_activos,
+    )
+
+    respuestas_guardadas = obtener_respuestas_diagnostico(id_diagnostico) if retomar else {}
+
+    # cuestionario.py recuerda la selección visual del selectbox por
+    # separado (session_state["nivel_<id_pregunta>"]), para cuando el
+    # usuario navega hacia atrás dentro de la misma sesión. Hay que
+    # poblarla también al retomar, o esas preguntas se verían en blanco
+    # (nivel 0) pese a tener respuesta guardada.
+    for id_p, datos in respuestas_guardadas.items():
+        st.session_state[f"nivel_{id_p}"] = datos.get("nivel", 0)
+
+    modulo_idx, pregunta_idx = _primera_posicion_sin_responder(modulos_activos, respuestas_guardadas)
+
+    st.session_state["modulos_seleccionados"]     = modulos_activos
+    st.session_state["id_diagnostico"]            = id_diagnostico
+    st.session_state["respuestas"]                = respuestas_guardadas
+    st.session_state["modulo_actual_idx"]         = modulo_idx
+    st.session_state["pregunta_actual_idx"]       = pregunta_idx
+    st.session_state["oferta_borrador_pendiente"] = False
+    st.session_state.pop("borradores_detectados", None)
+    st.session_state.pop("modulos_pendientes_confirmar", None)
+    st.session_state["pantalla"] = "cuestionario"
+    st.rerun()
 
 
 def render():
@@ -209,6 +280,32 @@ def render():
         margin-top: 0.5rem;
         margin-bottom: 1rem;
     }
+
+    /* Oferta de retomar un módulo con progreso guardado */
+    .zl-info-borrador {
+        background: #FFFBEB;
+        border-left: 4px solid #FFCB03;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        font-family: 'Poppins', sans-serif;
+        font-size: 0.84rem;
+        color: #78350F;
+        margin-top: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    .zl-info-borrador ul {
+        margin: 0.4rem 0 0.2rem 1.1rem;
+        padding: 0;
+    }
+    .st-key-btn_comenzar_nuevo .stButton > button {
+        background: transparent !important;
+        color: #6B7280 !important;
+        border: 1.5px solid #D1D5DB !important;
+    }
+    .st-key-btn_comenzar_nuevo .stButton > button:hover {
+        background: #F3F4F6 !important;
+        color: #003049 !important;
+    }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     """, unsafe_allow_html=True)
@@ -325,28 +422,74 @@ def render():
 
     st.markdown("---")
 
-    # ── Botones de navegación ─────────────────────────────────────────────────
-    col1, col2 = st.columns([1, 2])
-    with col1:
-        with st.container(key="btn_volver"):
-            if st.button("← Volver"):
-                st.session_state["pantalla"] = "inicio"
-                st.rerun()
+    # ── Oferta de retomar un módulo con progreso guardado ───────────────────────
+    # Se muestra en vez de los botones normales mientras el usuario no haya
+    # decidido si continuar donde quedó o comenzar de nuevo.
+    if st.session_state.get("oferta_borrador_pendiente"):
+        borradores = st.session_state.get("borradores_detectados", {})
+        modulos_pendientes = st.session_state.get("modulos_pendientes_confirmar", [])
+        nombres_modulos = {
+            row["ID Módulo"].strip(): row["Nombre Módulo"].strip()
+            for _, row in todos_modulos.iterrows()
+        }
 
-    with col2:
-        if st.button("Iniciar evaluación →"):
-            modulos_activos = [m for m in seleccionados
-                               if m in [r["ID Módulo"].strip()
-                                        for _, r in todos_modulos.iterrows()
-                                        if str(r["Activo"]).strip().lower() == "sí"]]
-            if not modulos_activos:
-                st.markdown(
-                    '<div class="zl-error">⚠ Seleccione al menos un módulo para continuar.</div>',
-                    unsafe_allow_html=True)
-            else:
-                st.session_state["modulos_seleccionados"] = modulos_activos
-                st.session_state["modulo_actual_idx"]     = 0
-                st.session_state["respuestas"]            = {}
-                st.session_state["pregunta_actual_idx"]   = 0
-                st.session_state["pantalla"]              = "cuestionario"
-                st.rerun()
+        items_html = "".join(
+            f"<li>{nombres_modulos.get(id_m, id_m)}: "
+            f"{info['respondidas']} de {info['total']} preguntas respondidas</li>"
+            for id_m, info in borradores.items()
+        )
+        st.markdown(f"""
+        <div class="zl-info-borrador">
+            ℹ Encontramos progreso guardado sin finalizar:
+            <ul>{items_html}</ul>
+            ¿Desea continuar donde quedó o comenzar de nuevo?
+        </div>
+        """, unsafe_allow_html=True)
+
+        col_continuar, col_nuevo = st.columns(2)
+        with col_continuar:
+            if st.button("Continuar donde quedé →"):
+                _iniciar_cuestionario(modulos_pendientes, retomar=True,
+                                       borradores_detectados=borradores)
+        with col_nuevo:
+            with st.container(key="btn_comenzar_nuevo"):
+                if st.button("Comenzar de nuevo"):
+                    _iniciar_cuestionario(modulos_pendientes, retomar=False,
+                                           borradores_detectados=borradores)
+
+    else:
+        # ── Botones de navegación ────────────────────────────────────────────
+        col1, col2 = st.columns([1, 2])
+        with col1:
+            with st.container(key="btn_volver"):
+                if st.button("← Volver"):
+                    st.session_state["pantalla"] = "inicio"
+                    st.rerun()
+
+        with col2:
+            if st.button("Iniciar evaluación →"):
+                modulos_activos = [m for m in seleccionados
+                                   if m in [r["ID Módulo"].strip()
+                                            for _, r in todos_modulos.iterrows()
+                                            if str(r["Activo"]).strip().lower() == "sí"]]
+                if not modulos_activos:
+                    st.markdown(
+                        '<div class="zl-error">⚠ Seleccione al menos un módulo para continuar.</div>',
+                        unsafe_allow_html=True)
+                else:
+                    correo  = st.session_state.get("correo", "")
+                    empresa = st.session_state.get("empresa", "")
+                    borradores = {}
+                    for id_m in modulos_activos:
+                        total = len(get_preguntas(id_m))
+                        info = buscar_borrador_modulo(correo, empresa, id_m, total)
+                        if info:
+                            borradores[id_m] = info
+
+                    if borradores:
+                        st.session_state["oferta_borrador_pendiente"] = True
+                        st.session_state["borradores_detectados"] = borradores
+                        st.session_state["modulos_pendientes_confirmar"] = modulos_activos
+                        st.rerun()
+                    else:
+                        _iniciar_cuestionario(modulos_activos, retomar=False)

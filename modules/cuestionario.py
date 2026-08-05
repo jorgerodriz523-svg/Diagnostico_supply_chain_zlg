@@ -8,6 +8,7 @@ Navega módulo por módulo; al terminar todos pasa a resultados.
 import streamlit as st
 from utils.loader import get_preguntas, get_opciones_modulo
 from utils.scoring import calcular_score_pregunta
+from utils.db import guardar_respuesta_incremental
 from modules.layout import render_sidebar, render_content_header
 
 NIVEL_LABELS = {
@@ -26,6 +27,41 @@ NIVEL_COLOR_INDICADOR = {
     3: "#7BC67E",
     4: "#003049", 5: "#003049",
 }
+
+
+def _registrar_respuesta(respuestas, id_pregunta, id_modulo, id_dimension, subdimension, nivel):
+    """
+    Fija la respuesta en session_state (como ya hacía la app) y además la
+    autoguarda en la BD de inmediato, para no perder el avance si el
+    usuario sale antes de terminar el cuestionario.
+    """
+    puntaje = calcular_score_pregunta(nivel)
+    respuestas[id_pregunta] = {
+        "nivel"       : nivel,
+        "puntaje"     : puntaje,
+        "id_modulo"   : id_modulo,
+        "id_dimension": id_dimension,
+        "subdimension": subdimension,
+        "opcion"      : str(nivel),
+    }
+    st.session_state["respuestas"] = respuestas
+
+    id_diagnostico = st.session_state.get("id_diagnostico")
+    if id_diagnostico:
+        try:
+            guardar_respuesta_incremental(
+                id_diagnostico=id_diagnostico,
+                id_pregunta=id_pregunta,
+                id_modulo=id_modulo,
+                id_dimension=id_dimension,
+                subdimension=subdimension,
+                opcion=str(nivel),
+                puntaje=puntaje,
+            )
+        except Exception as e:
+            st.warning(f"No se pudo guardar automáticamente la respuesta: {e}")
+
+    return puntaje
 
 
 def render():
@@ -329,16 +365,8 @@ def render():
         with st.container(key="btn_anterior"):
             if st.button("← Anterior", key=f"ant_{id_pregunta}"):
                 # Guardar respuesta actual antes de retroceder
-                puntaje = calcular_score_pregunta(nivel)
-                respuestas[id_pregunta] = {
-                    "nivel"       : nivel,
-                    "puntaje"     : puntaje,
-                    "id_modulo"   : id_modulo,
-                    "id_dimension": id_dimension,
-                    "subdimension": subdimension,
-                    "opcion"      : str(nivel),
-                }
-                st.session_state["respuestas"] = respuestas
+                _registrar_respuesta(respuestas, id_pregunta, id_modulo,
+                                      id_dimension, subdimension, nivel)
 
                 if preg_idx > 0:
                     st.session_state["pregunta_actual_idx"] = preg_idx - 1
@@ -359,16 +387,8 @@ def render():
         with st.container(key=key_btn):
             if st.button(label_btn, key=f"sig_{id_pregunta}"):
                 # Guardar respuesta actual
-                puntaje = calcular_score_pregunta(nivel)
-                respuestas[id_pregunta] = {
-                    "nivel"       : nivel,
-                    "puntaje"     : puntaje,
-                    "id_modulo"   : id_modulo,
-                    "id_dimension": id_dimension,
-                    "subdimension": subdimension,
-                    "opcion"      : str(nivel),
-                }
-                st.session_state["respuestas"] = respuestas
+                _registrar_respuesta(respuestas, id_pregunta, id_modulo,
+                                      id_dimension, subdimension, nivel)
 
                 # Avanzar
                 if preg_idx < total_pregs - 1:

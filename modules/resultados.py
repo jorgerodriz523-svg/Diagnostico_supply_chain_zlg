@@ -13,7 +13,7 @@ from pathlib import Path
 
 from utils.scoring  import calcular_scores, nivel_madurez, resumen_scores
 from utils.loader   import get_preguntas, get_todas_estrategias_modulo
-from utils.db       import inicializar_bd, guardar_diagnostico
+from utils.db       import inicializar_bd, marcar_diagnostico_completo
 from generar_datos  import (
     construir_payload, validar_payload,
     generar_html_bytes, generar_pptx_bytes, generar_matriz_bytes,
@@ -242,21 +242,19 @@ def render():
         st.session_state["scores_calculados"] = scores
         st.session_state["id_modulo_calc"]    = id_modulo
 
-        # Guardar en BD (solo una vez por diagnóstico, no en cada rerun/descarga)
+        # Cerrar el diagnóstico en BD (solo una vez, no en cada rerun/descarga).
+        # Las respuestas ya se guardaron de forma incremental durante el
+        # cuestionario; aquí solo se marca como completo y se fija el score.
         if not st.session_state.get("diagnostico_guardado"):
+            id_diagnostico = st.session_state.get("id_diagnostico")
             try:
                 inicializar_bd()
-                preguntas_df = get_preguntas(id_modulo)
-                guardar_diagnostico(
-                    empresa=empresa, responsable=responsable,
-                    sector=sector, fecha=fecha,
-                    modulos_aplicados=modulos,
-                    respuestas=respuestas,
-                    scores=scores,
-                    preguntas_df=preguntas_df,
-                    cargo=cargo, celular=celular, correo=correo,
-                    pais=pais, ciudad=ciudad,
-                )
+                if id_diagnostico:
+                    marcar_diagnostico_completo(
+                        id_diagnostico=id_diagnostico,
+                        scores=scores,
+                        fecha=fecha,
+                    )
                 st.session_state["diagnostico_guardado"] = True
             except Exception as e:
                 st.warning(f"No se pudo guardar en la base de datos: {e}")
@@ -452,7 +450,7 @@ def render():
                 "modulos_seleccionados", "supply_chain_activo",
                 "respuestas", "scores_calculados",
                 "modulo_actual_idx", "pregunta_actual_idx",
-                "id_modulo_calc", "diagnostico_guardado",
+                "id_modulo_calc", "diagnostico_guardado", "id_diagnostico",
             ]
             for key in keys_a_limpiar:
                 st.session_state.pop(key, None)
