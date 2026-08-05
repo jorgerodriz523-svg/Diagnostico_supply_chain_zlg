@@ -364,9 +364,16 @@ def render():
     with col_ant:
         with st.container(key="btn_anterior"):
             if st.button("← Anterior", key=f"ant_{id_pregunta}"):
-                # Guardar respuesta actual antes de retroceder
-                _registrar_respuesta(respuestas, id_pregunta, id_modulo,
-                                      id_dimension, subdimension, nivel)
+                # Solo se autoguarda si la pregunta ya tenía una respuesta
+                # previa o si el usuario realmente seleccionó un nivel
+                # distinto del valor por defecto. Evita crear en la BD un
+                # registro para una pregunta que solo se visitó de paso
+                # (p.ej. al llegar por "Siguiente" y retroceder sin
+                # responderla), ya que el selectbox siempre expone un
+                # valor (0) aunque nunca se haya tocado.
+                if id_pregunta in respuestas or nivel != 0:
+                    _registrar_respuesta(respuestas, id_pregunta, id_modulo,
+                                          id_dimension, subdimension, nivel)
 
                 if preg_idx > 0:
                     st.session_state["pregunta_actual_idx"] = preg_idx - 1
