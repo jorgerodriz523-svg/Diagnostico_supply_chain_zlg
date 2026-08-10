@@ -316,6 +316,12 @@ def render():
     render_sidebar("seleccion_modulos")
     render_content_header("Selección de módulos")
 
+    if st.session_state.pop("retomo_diagnostico", False):
+        st.markdown(
+            f'<div class="zl-info-supply">✓ Recuperamos los datos de '
+            f'<b>{empresa}</b>. Ajuste los módulos si lo necesita y continúe.</div>',
+            unsafe_allow_html=True)
+
     st.markdown('<div class="zl-semaforo"></div>', unsafe_allow_html=True)
 
     st.markdown("""

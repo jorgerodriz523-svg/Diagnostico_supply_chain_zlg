@@ -10,6 +10,7 @@ import streamlit as st
 from pathlib import Path
 
 from modules.layout import render_sidebar, render_content_header
+from utils.db import buscar_diagnostico_en_progreso
 
 LOGO_ZL = Path(__file__).parent.parent / "assets" / "logo_zonalogistica.png"
 
@@ -251,6 +252,66 @@ def render():
         entre 10 y 20 minutos dependiendo de los módulos seleccionados.
     </p>
     """, unsafe_allow_html=True)
+
+    with st.expander("¿Ya iniciaste un diagnóstico? Retómalo aquí", expanded=False):
+        st.markdown('<p class="zl-label">Correo electrónico</p>', unsafe_allow_html=True)
+        correo_retomar = st.text_input(
+            "correo_retomar", label_visibility="collapsed",
+            placeholder="Ej: nombre@empresa.com",
+            key="input_correo_retomar",
+        )
+        st.markdown('<p class="zl-label">Nombre de la empresa</p>', unsafe_allow_html=True)
+        empresa_retomar = st.text_input(
+            "empresa_retomar", label_visibility="collapsed",
+            placeholder="Ej: Haceb S.A.",
+            key="input_empresa_retomar",
+        )
+
+        if st.button("Buscar mi diagnóstico →", key="btn_buscar_retomar"):
+            errores_retomar = []
+            if not correo_retomar.strip():
+                errores_retomar.append("Ingrese el correo con el que inició el diagnóstico.")
+            elif not EMAIL_REGEX.match(correo_retomar.strip()):
+                errores_retomar.append("El correo electrónico no tiene un formato válido.")
+            if not empresa_retomar.strip():
+                errores_retomar.append("Ingrese el nombre de la empresa.")
+
+            if errores_retomar:
+                for e in errores_retomar:
+                    st.markdown(f'<div class="zl-error">⚠ {e}</div>', unsafe_allow_html=True)
+            else:
+                hubo_error_conexion = False
+                try:
+                    encontrado = buscar_diagnostico_en_progreso(
+                        correo_retomar.strip(), empresa_retomar.strip())
+                except Exception:
+                    encontrado = None
+                    hubo_error_conexion = True
+
+                if hubo_error_conexion:
+                    st.markdown(
+                        '<div class="zl-error">⚠ No pudimos conectar con la base de '
+                        'datos. Intente de nuevo o complete el formulario completo.</div>',
+                        unsafe_allow_html=True)
+                elif encontrado:
+                    st.session_state["empresa"]     = encontrado["empresa"]
+                    st.session_state["sector"]      = encontrado["sector"] or ""
+                    st.session_state["responsable"] = encontrado["responsable"]
+                    st.session_state["cargo"]       = encontrado["cargo"] or ""
+                    st.session_state["celular"]     = encontrado["celular"] or ""
+                    st.session_state["correo"]      = encontrado["correo"]
+                    st.session_state["pais"]        = encontrado["pais"] or ""
+                    st.session_state["ciudad"]      = encontrado["ciudad"] or ""
+                    st.session_state["modulos_seleccionados"] = encontrado["modulos_aplicados"]
+                    st.session_state["retomo_diagnostico"] = True
+                    st.session_state["pantalla"] = "seleccion_modulos"
+                    st.rerun()
+                else:
+                    st.info(
+                        "No encontramos un diagnóstico en progreso con esos datos. "
+                        "Verifique que el correo y el nombre de la empresa estén "
+                        "escritos igual que la primera vez, o complete el formulario "
+                        "completo más abajo para comenzar uno nuevo.")
 
     st.markdown('<p class="zl-label">Nombre de la empresa</p>', unsafe_allow_html=True)
     empresa = st.text_input(
