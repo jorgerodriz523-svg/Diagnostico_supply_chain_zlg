@@ -82,6 +82,7 @@ def inicializar_bd() -> None:
                 id_pregunta      TEXT NOT NULL,
                 opcion_elegida   TEXT NOT NULL,    -- Letra: A, B, C o D
                 puntaje          INTEGER NOT NULL,
+                observacion      TEXT,
                 FOREIGN KEY (id_diagnostico) REFERENCES diagnosticos(id_diagnostico)
             );
 
@@ -122,6 +123,7 @@ def inicializar_bd() -> None:
                 id_pregunta      TEXT NOT NULL,
                 opcion_elegida   TEXT NOT NULL,    -- Letra: A, B, C o D
                 puntaje          INTEGER NOT NULL,
+                observacion      TEXT,
                 FOREIGN KEY (id_diagnostico) REFERENCES diagnosticos(id_diagnostico)
             );
 
@@ -160,6 +162,22 @@ def inicializar_bd() -> None:
     for nombre, tipo in columnas_nuevas.items():
         if nombre not in columnas_existentes:
             cursor.execute(f"ALTER TABLE diagnosticos ADD COLUMN {nombre} {tipo}")
+
+    # Columna "observacion" en respuestas: si la BD ya existía sin ella
+    # (bases creadas antes de habilitar las observaciones por pregunta),
+    # se agrega sin borrar datos.
+    if _USANDO_POSTGRES:
+        cursor.execute("""
+            SELECT column_name FROM information_schema.columns
+            WHERE table_name = 'respuestas'
+        """)
+        columnas_respuestas = {fila["column_name"] for fila in cursor.fetchall()}
+    else:
+        cursor.execute("PRAGMA table_info(respuestas)")
+        columnas_respuestas = {fila[1] for fila in cursor.fetchall()}
+
+    if "observacion" not in columnas_respuestas:
+        cursor.execute("ALTER TABLE respuestas ADD COLUMN observacion TEXT")
 
     # Índice único que habilita el upsert (ON CONFLICT) de respuestas por
     # pregunta: permite guardar cada respuesta en el momento en que se
@@ -443,6 +461,7 @@ def guardar_respuesta_incremental(
     subdimension: str,
     opcion: str,
     puntaje: int,
+    observacion: str = "",
 ) -> None:
     """
     Guarda (o actualiza si ya existía) la respuesta de una pregunta en el
@@ -457,16 +476,17 @@ def guardar_respuesta_incremental(
         cursor.execute(_sql("""
             INSERT INTO respuestas
                 (id_diagnostico, id_modulo, id_dimension, subdimension,
-                 id_pregunta, opcion_elegida, puntaje)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+                 id_pregunta, opcion_elegida, puntaje, observacion)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT (id_diagnostico, id_pregunta) DO UPDATE SET
                 id_modulo      = excluded.id_modulo,
                 id_dimension   = excluded.id_dimension,
                 subdimension   = excluded.subdimension,
                 opcion_elegida = excluded.opcion_elegida,
-                puntaje        = excluded.puntaje
+                puntaje        = excluded.puntaje,
+                observacion    = excluded.observacion
         """), (id_diagnostico, id_modulo, id_dimension, subdimension,
-               id_pregunta, opcion, puntaje))
+               id_pregunta, opcion, puntaje, observacion))
 
         cursor.execute(_sql("""
             UPDATE diagnosticos SET actualizado_en = ? WHERE id_diagnostico = ?
@@ -490,7 +510,7 @@ def obtener_respuestas_diagnostico(id_diagnostico: int) -> dict:
     cursor = conn.cursor()
     cursor.execute(_sql("""
         SELECT id_pregunta, id_modulo, id_dimension, subdimension,
-               opcion_elegida, puntaje
+               opcion_elegida, puntaje, observacion
         FROM respuestas WHERE id_diagnostico = ?
     """), (id_diagnostico,))
     filas = [dict(r) for r in cursor.fetchall()]
@@ -509,6 +529,7 @@ def obtener_respuestas_diagnostico(id_diagnostico: int) -> dict:
             "id_dimension": fila["id_dimension"],
             "subdimension": fila["subdimension"],
             "opcion"      : fila["opcion_elegida"],
+            "observacion" : fila.get("observacion") or "",
         }
     return respuestas
 

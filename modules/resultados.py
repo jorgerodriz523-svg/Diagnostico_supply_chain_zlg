@@ -455,12 +455,13 @@ def render():
             for key in keys_a_limpiar:
                 st.session_state.pop(key, None)
 
-            # Limpiar también sliders, selectboxes y niveles
-            # guardados por pregunta
+            # Limpiar también sliders, selectboxes, niveles y
+            # observaciones guardados por pregunta
             for k in list(st.session_state.keys()):
                 if (k.startswith("nivel_") or
                         k.startswith("slider_") or
                         k.startswith("select_") or
+                        k.startswith("obs_") or
                         k.startswith("cb_MOD")):
                     del st.session_state[k]
             st.session_state["pantalla"] = "inicio"

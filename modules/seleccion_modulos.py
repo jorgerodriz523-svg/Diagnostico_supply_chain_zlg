@@ -92,13 +92,15 @@ def _iniciar_cuestionario(modulos_activos, retomar, borradores_detectados=None):
 
     respuestas_guardadas = obtener_respuestas_diagnostico(id_diagnostico) if retomar else {}
 
-    # cuestionario.py recuerda la selección visual del selectbox por
-    # separado (session_state["nivel_<id_pregunta>"]), para cuando el
-    # usuario navega hacia atrás dentro de la misma sesión. Hay que
-    # poblarla también al retomar, o esas preguntas se verían en blanco
-    # (nivel 0) pese a tener respuesta guardada.
+    # cuestionario.py recuerda la selección visual del selectbox y el
+    # texto de observaciones por separado (session_state["nivel_<id>"] y
+    # session_state["obs_<id>"]), para cuando el usuario navega hacia
+    # atrás dentro de la misma sesión. Hay que poblarlas también al
+    # retomar, o esas preguntas se verían en blanco pese a tener
+    # respuesta guardada.
     for id_p, datos in respuestas_guardadas.items():
         st.session_state[f"nivel_{id_p}"] = datos.get("nivel", 0)
+        st.session_state[f"obs_{id_p}"]   = datos.get("observacion", "")
 
     modulo_idx, pregunta_idx = _primera_posicion_sin_responder(modulos_activos, respuestas_guardadas)
 

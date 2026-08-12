@@ -29,7 +29,7 @@ NIVEL_COLOR_INDICADOR = {
 }
 
 
-def _registrar_respuesta(respuestas, id_pregunta, id_modulo, id_dimension, subdimension, nivel):
+def _registrar_respuesta(respuestas, id_pregunta, id_modulo, id_dimension, subdimension, nivel, observacion=""):
     """
     Fija la respuesta en session_state (como ya hacía la app) y además la
     autoguarda en la BD de inmediato, para no perder el avance si el
@@ -43,6 +43,7 @@ def _registrar_respuesta(respuestas, id_pregunta, id_modulo, id_dimension, subdi
         "id_dimension": id_dimension,
         "subdimension": subdimension,
         "opcion"      : str(nivel),
+        "observacion" : observacion,
     }
     st.session_state["respuestas"] = respuestas
 
@@ -57,6 +58,7 @@ def _registrar_respuesta(respuestas, id_pregunta, id_modulo, id_dimension, subdi
                 subdimension=subdimension,
                 opcion=str(nivel),
                 puntaje=puntaje,
+                observacion=observacion,
             )
         except Exception as e:
             st.warning(f"No se pudo guardar automáticamente la respuesta: {e}")
@@ -181,6 +183,39 @@ def render():
     }
     .zl-guia-fila-sel .zl-guia-col-texto {
         font-weight: 700;
+    }
+
+    /* Bloque de observaciones del cliente */
+    .zl-obs-box {
+        border-radius: 12px 12px 0 0;
+        overflow: hidden;
+        margin-top: 1rem;
+        border: 1px solid #E5E7EB;
+        border-bottom: none;
+    }
+    .zl-obs-box-header {
+        background: #003049; color: #ffffff;
+        padding: 0.5rem 1rem;
+        font-family: 'Poppins', sans-serif;
+        font-size: 0.82rem; font-weight: 600;
+    }
+    .st-key-zl_obs_wrap {
+        border: 1px solid #E5E7EB; border-top: none;
+        border-radius: 0 0 12px 12px;
+        background: #F9FAFB;
+        padding: 0.75rem 1rem 0.9rem 1rem;
+    }
+    .st-key-zl_obs_wrap .stTextArea textarea {
+        border: 1.5px solid #D1D5DB !important;
+        border-radius: 8px !important;
+        font-family: 'Poppins', sans-serif !important;
+        font-size: 0.85rem !important;
+        color: #003049 !important;
+        background: #ffffff !important;
+    }
+    .st-key-zl_obs_wrap .stTextArea textarea:focus {
+        border-color: #003049 !important;
+        box-shadow: 0 0 0 3px rgba(0,48,73,0.12) !important;
     }
 
     /* Botones */
@@ -324,37 +359,58 @@ def render():
     # Guardar nivel en session_state para recuperarlo si vuelve atrás
     st.session_state[f"nivel_{id_pregunta}"] = nivel
 
-    # Tabla de guías de calificación (todos los niveles simultáneamente)
-    if not ops_preg.empty:
-        filas_html = ""
-        for _, fila in ops_preg.iterrows():
-            nivel_fila = int(fila["Nivel (0-5)"])
-            etiqueta = NIVEL_LABELS.get(nivel_fila, (str(nivel_fila), "#003049", ""))[0]
-            color_fila = NIVEL_LABELS.get(nivel_fila, (str(nivel_fila), "#003049", ""))[1]
-            emoji = NIVEL_LABELS.get(nivel_fila, ("", "#003049", ""))[2]
-            guia = str(fila.get("Guía para el cliente", "")).strip()
-            if "si:" in guia.lower():
-                guia = guia.split("si:", 1)[-1].strip()
+    # Tabla de guías de calificación (izquierda) + observaciones del cliente (derecha)
+    col_guia, col_obs = st.columns([3, 2])
 
-            etiqueta_txt = etiqueta.split("—", 1)[-1].strip()
-            clase_fila = "zl-guia-fila-sel" if nivel_fila == nivel else "zl-guia-fila-normal"
+    with col_guia:
+        if not ops_preg.empty:
+            filas_html = ""
+            for _, fila in ops_preg.iterrows():
+                nivel_fila = int(fila["Nivel (0-5)"])
+                etiqueta = NIVEL_LABELS.get(nivel_fila, (str(nivel_fila), "#003049", ""))[0]
+                color_fila = NIVEL_LABELS.get(nivel_fila, (str(nivel_fila), "#003049", ""))[1]
+                emoji = NIVEL_LABELS.get(nivel_fila, ("", "#003049", ""))[2]
+                guia = str(fila.get("Guía para el cliente", "")).strip()
+                if "si:" in guia.lower():
+                    guia = guia.split("si:", 1)[-1].strip()
 
-            # Sin saltos de línea ni indentación: evita que el parser de
-            # Markdown interprete el HTML como bloque de código indentado.
-            filas_html += (
-                f'<div class="zl-guia-fila {clase_fila}">'
-                f'<div class="zl-guia-col-nivel" style="color:{color_fila};">{nivel_fila} {emoji}</div>'
-                f'<div class="zl-guia-col-texto">{etiqueta_txt} — {guia}</div>'
-                f'</div>'
+                etiqueta_txt = etiqueta.split("—", 1)[-1].strip()
+                clase_fila = "zl-guia-fila-sel" if nivel_fila == nivel else "zl-guia-fila-normal"
+
+                # Sin saltos de línea ni indentación: evita que el parser de
+                # Markdown interprete el HTML como bloque de código indentado.
+                filas_html += (
+                    f'<div class="zl-guia-fila {clase_fila}">'
+                    f'<div class="zl-guia-col-nivel" style="color:{color_fila};">{nivel_fila} {emoji}</div>'
+                    f'<div class="zl-guia-col-texto">{etiqueta_txt} — {guia}</div>'
+                    f'</div>'
+                )
+
+            html_tabla = (
+                '<div class="zl-guia-tabla">'
+                '<div class="zl-guia-tabla-header">📖 Guía de calificación</div>'
+                + filas_html +
+                '</div>'
             )
+            st.markdown(html_tabla, unsafe_allow_html=True)
 
-        html_tabla = (
-            '<div class="zl-guia-tabla">'
-            '<div class="zl-guia-tabla-header">📖 Guía de calificación</div>'
-            + filas_html +
-            '</div>'
+    with col_obs:
+        obs_previa = st.session_state.get(
+            f"obs_{id_pregunta}",
+            respuestas.get(id_pregunta, {}).get("observacion", ""),
         )
-        st.markdown(html_tabla, unsafe_allow_html=True)
+        st.markdown('<div class="zl-obs-box"><div class="zl-obs-box-header">📝 Observaciones</div></div>',
+                    unsafe_allow_html=True)
+        with st.container(key="zl_obs_wrap"):
+            observacion = st.text_area(
+                "Observaciones",
+                value=obs_previa,
+                key=f"obs_area_{id_pregunta}",
+                height=230,
+                placeholder="Escribe aquí alguna observación relacionada con tu respuesta...",
+                label_visibility="collapsed",
+            )
+        st.session_state[f"obs_{id_pregunta}"] = observacion
 
     st.markdown("<br>", unsafe_allow_html=True)
 
@@ -365,15 +421,17 @@ def render():
         with st.container(key="btn_anterior"):
             if st.button("← Anterior", key=f"ant_{id_pregunta}"):
                 # Solo se autoguarda si la pregunta ya tenía una respuesta
-                # previa o si el usuario realmente seleccionó un nivel
-                # distinto del valor por defecto. Evita crear en la BD un
-                # registro para una pregunta que solo se visitó de paso
-                # (p.ej. al llegar por "Siguiente" y retroceder sin
-                # responderla), ya que el selectbox siempre expone un
-                # valor (0) aunque nunca se haya tocado.
-                if id_pregunta in respuestas or nivel != 0:
+                # previa, si el usuario realmente seleccionó un nivel
+                # distinto del valor por defecto, o si escribió una
+                # observación. Evita crear en la BD un registro para una
+                # pregunta que solo se visitó de paso (p.ej. al llegar por
+                # "Siguiente" y retroceder sin responderla), ya que el
+                # selectbox siempre expone un valor (0) aunque nunca se
+                # haya tocado.
+                if id_pregunta in respuestas or nivel != 0 or observacion.strip():
                     _registrar_respuesta(respuestas, id_pregunta, id_modulo,
-                                          id_dimension, subdimension, nivel)
+                                          id_dimension, subdimension, nivel,
+                                          observacion)
 
                 if preg_idx > 0:
                     st.session_state["pregunta_actual_idx"] = preg_idx - 1
@@ -395,7 +453,8 @@ def render():
             if st.button(label_btn, key=f"sig_{id_pregunta}"):
                 # Guardar respuesta actual
                 _registrar_respuesta(respuestas, id_pregunta, id_modulo,
-                                      id_dimension, subdimension, nivel)
+                                      id_dimension, subdimension, nivel,
+                                      observacion)
 
                 # Avanzar
                 if preg_idx < total_pregs - 1:
