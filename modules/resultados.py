@@ -258,6 +258,20 @@ def render():
                 st.session_state["diagnostico_guardado"] = True
             except Exception as e:
                 st.warning(f"No se pudo guardar en la base de datos: {e}")
+
+        # Si el módulo del diagnóstico ya no tiene parametrización activa
+        # (p.ej. un diagnóstico antiguo hecho sobre un módulo que luego se
+        # desactivó), no hay dimensiones que graficar: se corta aquí con un
+        # mensaje claro en vez de romper st.columns() más abajo.
+        if not scores["dimensiones"]:
+            st.error(
+                "⚠ No encontramos resultados disponibles para este diagnóstico: "
+                "el módulo evaluado ya no está activo. Contacte a soporte si "
+                "cree que esto es un error.")
+            if st.button("← Volver al inicio"):
+                st.session_state["pantalla"] = "inicio"
+                st.rerun()
+            st.stop()
     # (bloque else eliminado - siempre recalcula)
     if False:
         scores    = st.session_state["scores_calculados"]
