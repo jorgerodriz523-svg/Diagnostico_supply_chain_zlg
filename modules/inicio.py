@@ -10,7 +10,11 @@ import streamlit as st
 from pathlib import Path
 
 from modules.layout import render_sidebar, render_content_header
-from utils.db import buscar_diagnostico_en_progreso
+from utils.db import (
+    buscar_diagnostico_en_progreso,
+    buscar_diagnostico_completado,
+    obtener_respuestas_diagnostico,
+)
 
 LOGO_ZL = Path(__file__).parent.parent / "assets" / "logo_zonalogistica.png"
 
@@ -312,6 +316,68 @@ def render():
                         "Verifique que el correo y el nombre de la empresa estén "
                         "escritos igual que la primera vez, o complete el formulario "
                         "completo más abajo para comenzar uno nuevo.")
+
+    with st.expander("¿Ya finalizaste un diagnóstico? Descarga tus resultados aquí", expanded=False):
+        st.markdown('<p class="zl-label">Correo electrónico</p>', unsafe_allow_html=True)
+        correo_resultados = st.text_input(
+            "correo_resultados", label_visibility="collapsed",
+            placeholder="Ej: nombre@empresa.com",
+            key="input_correo_resultados",
+        )
+        st.markdown('<p class="zl-label">Nombre de la empresa</p>', unsafe_allow_html=True)
+        empresa_resultados = st.text_input(
+            "empresa_resultados", label_visibility="collapsed",
+            placeholder="Ej: Haceb S.A.",
+            key="input_empresa_resultados",
+        )
+
+        if st.button("Ver mis resultados →", key="btn_buscar_resultados"):
+            errores_resultados = []
+            if not correo_resultados.strip():
+                errores_resultados.append("Ingrese el correo con el que hizo el diagnóstico.")
+            elif not EMAIL_REGEX.match(correo_resultados.strip()):
+                errores_resultados.append("El correo electrónico no tiene un formato válido.")
+            if not empresa_resultados.strip():
+                errores_resultados.append("Ingrese el nombre de la empresa.")
+
+            if errores_resultados:
+                for e in errores_resultados:
+                    st.markdown(f'<div class="zl-error">⚠ {e}</div>', unsafe_allow_html=True)
+            else:
+                hubo_error_conexion = False
+                try:
+                    encontrado = buscar_diagnostico_completado(
+                        correo_resultados.strip(), empresa_resultados.strip())
+                except Exception:
+                    encontrado = None
+                    hubo_error_conexion = True
+
+                if hubo_error_conexion:
+                    st.markdown(
+                        '<div class="zl-error">⚠ No pudimos conectar con la base de '
+                        'datos. Intente de nuevo más tarde.</div>',
+                        unsafe_allow_html=True)
+                elif encontrado:
+                    st.session_state["empresa"]     = encontrado["empresa"]
+                    st.session_state["sector"]      = encontrado["sector"] or ""
+                    st.session_state["responsable"] = encontrado["responsable"]
+                    st.session_state["cargo"]       = encontrado["cargo"] or ""
+                    st.session_state["celular"]     = encontrado["celular"] or ""
+                    st.session_state["correo"]      = encontrado["correo"]
+                    st.session_state["pais"]        = encontrado["pais"] or ""
+                    st.session_state["ciudad"]      = encontrado["ciudad"] or ""
+                    st.session_state["modulos_seleccionados"] = encontrado["modulos_aplicados"]
+                    st.session_state["id_diagnostico"] = encontrado["id_diagnostico"]
+                    st.session_state["respuestas"] = obtener_respuestas_diagnostico(
+                        encontrado["id_diagnostico"])
+                    st.session_state["diagnostico_guardado"] = True
+                    st.session_state["pantalla"] = "resultados"
+                    st.rerun()
+                else:
+                    st.info(
+                        "No encontramos un diagnóstico finalizado con esos datos. "
+                        "Verifique que el correo y el nombre de la empresa estén "
+                        "escritos igual que cuando lo completó.")
 
     st.markdown('<p class="zl-label">Nombre de la empresa</p>', unsafe_allow_html=True)
     empresa = st.text_input(

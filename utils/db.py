@@ -412,6 +412,38 @@ def buscar_diagnostico_en_progreso(correo: str, empresa: str) -> dict | None:
         conn.close()
 
 
+def buscar_diagnostico_completado(correo: str, empresa: str) -> dict | None:
+    """
+    Busca el diagnóstico 'completo' más reciente del cliente (correo +
+    empresa normalizados). La usa inicio.py para permitir recuperar y
+    volver a descargar los resultados del último diagnóstico finalizado,
+    sin importar si el cliente cerró la pantalla de resultados o inició
+    uno nuevo después.
+    """
+    correo_norm  = _normalizar(correo)
+    empresa_norm = _normalizar(empresa)
+
+    conn = _conectar()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(_sql("""
+            SELECT id_diagnostico, empresa, responsable, sector, cargo,
+                   celular, correo, pais, ciudad, modulos_aplicados
+            FROM diagnosticos
+            WHERE estado = 'completo'
+              AND correo_normalizado = ? AND empresa_normalizado = ?
+            ORDER BY id_diagnostico DESC LIMIT 1
+        """), (correo_norm, empresa_norm))
+        fila = cursor.fetchone()
+        if not fila:
+            return None
+        fila = dict(fila)
+        fila["modulos_aplicados"] = json.loads(fila["modulos_aplicados"] or "[]")
+        return fila
+    finally:
+        conn.close()
+
+
 def buscar_borrador_modulo(
     correo: str, empresa: str, id_modulo: str, total_preguntas_modulo: int
 ) -> dict | None:
