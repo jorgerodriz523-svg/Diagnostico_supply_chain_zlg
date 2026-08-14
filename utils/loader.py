@@ -48,7 +48,8 @@ def get_modulos(solo_activos: bool = True) -> pd.DataFrame:
 def get_dimensiones(id_modulo: str) -> pd.DataFrame:
     """
     Devuelve las dimensiones y subdimensiones de un módulo específico.
-    Columnas relevantes: ID Dimensión, Nombre Dimensión, Subdimensión, Peso Dimensión (%)
+    Columnas relevantes: ID Dimensión, Nombre Dimensión, Peso Dimensión (%),
+    Subdimensión, Peso Subdimensión (%)
     """
     df = _cargar_excel()["dimensiones"].copy()
     df.columns = df.columns.str.strip()
