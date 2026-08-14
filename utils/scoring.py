@@ -11,11 +11,17 @@ Escala de respuesta: 0–5  →  convertida a puntaje 0–100 por la tabla:
     4 → 80   (Avanzado)
     5 → 100  (Óptimo)
 
-Lógica de cálculo:
+Lógica de cálculo (los pesos vienen del Excel de parametrización):
   - Score pregunta     → puntaje 0-100 correspondiente al nivel 0-5 elegido
-  - Score subdimensión → promedio simple de las preguntas que la componen
-  - Score dimensión    → promedio de sus subdimensiones
-  - Score general      → promedio ponderado de las dimensiones (peso del Excel)
+  - Score subdimensión → promedio ponderado de sus preguntas, según
+                          "Peso pregunta en dimensión (%)" (hoja 3_Preguntas;
+                          el peso está definido por subdimensión: suma 1.0
+                          entre las preguntas de una misma subdimensión)
+  - Score dimensión    → promedio ponderado de sus subdimensiones, según
+                          "Peso Dimensión (%)" (hoja 2_Dimensiones; suma 1.0
+                          entre las subdimensiones de una misma dimensión)
+  - Score general      → promedio simple de las dimensiones (mismo peso
+                          para cada una)
 """
 
 import pandas as pd
@@ -56,9 +62,6 @@ def calcular_scores(id_modulo: str, respuestas: dict) -> dict:
     preguntas_df = get_preguntas(id_modulo)
     dimensiones_df = get_dimensiones(id_modulo)
 
-    # Mapa de peso por dimensión (normalizado a suma 1.0)
-    pesos_dim = _calcular_pesos_dimensiones(dimensiones_df)
-
     scores_dim = {}
 
     # Agrupar preguntas por dimensión
@@ -68,23 +71,33 @@ def calcular_scores(id_modulo: str, respuestas: dict) -> dict:
         # Agrupar preguntas de esa dimensión por subdimensión
         scores_subdim = {}
         for subdim, grupo_subdim in grupo_dim.groupby("Subdimensión"):
-            puntajes = [
+            pesos_preg = _pesos_preguntas(grupo_subdim)
+            score_subdim = sum(
                 respuestas.get(row["ID Pregunta"].strip(), 0)
+                * pesos_preg[row["ID Pregunta"].strip()]
                 for _, row in grupo_subdim.iterrows()
-            ]
-            scores_subdim[subdim] = round(sum(puntajes) / len(puntajes), 2)
+            )
+            scores_subdim[subdim] = round(score_subdim, 2)
 
-        # Score de la dimensión = promedio de sus subdimensiones
-        score_dim = round(sum(scores_subdim.values()) / len(scores_subdim), 2)
+        # Score de la dimensión = promedio ponderado de sus subdimensiones
+        pesos_subdim = _pesos_subdimensiones(dimensiones_df, id_dim)
+        score_dim = sum(
+            score * pesos_subdim.get(subdim, 1 / len(scores_subdim))
+            for subdim, score in scores_subdim.items()
+        )
 
         scores_dim[id_dim] = {
             "nombre"        : nombre_dim,
-            "score"         : score_dim,
+            "score"         : round(score_dim, 2),
             "subdimensiones": scores_subdim,
         }
 
-    # Score general = promedio ponderado de dimensiones
-    score_general = _score_ponderado(scores_dim, pesos_dim)
+    # Score general = promedio simple entre dimensiones (mismo peso c/u)
+    if scores_dim:
+        score_general = round(
+            sum(data["score"] for data in scores_dim.values()) / len(scores_dim), 2)
+    else:
+        score_general = 0.0
 
     return {
         "score_general": score_general,
@@ -148,42 +161,59 @@ def _nombre_dimension(dimensiones_df: pd.DataFrame, id_dim: str) -> str:
     return fila.iloc[0]["Nombre Dimensión"]
 
 
-def _calcular_pesos_dimensiones(dimensiones_df: pd.DataFrame) -> dict:
+def _normalizar_pesos(pesos: dict) -> dict:
     """
-    Lee los pesos del Excel y los normaliza a suma 1.0.
-    Si los pesos son fórmulas no resueltas, usa distribución equitativa.
+    Si algún peso es NaN o una fórmula no resuelta en el Excel, distribuye
+    equitativamente entre las claves. Luego normaliza para que la suma
+    de todos los pesos sea 1.0 (por si en el Excel no suman exactamente 100%).
     """
-    dims_unicas = dimensiones_df.drop_duplicates(subset="ID Dimensión")[
-        ["ID Dimensión", "Peso Dimensión (%)"]
-    ]
-
-    pesos = {}
-    for _, row in dims_unicas.iterrows():
-        id_dim = row["ID Dimensión"].strip()
-        peso = row["Peso Dimensión (%)"]
-        try:
-            peso = float(peso)
-            pesos[id_dim] = None if pd.isna(peso) else peso
-        except (TypeError, ValueError):
-            pesos[id_dim] = None  # fórmula no resuelta → equitativo
-
-    # Si algún peso es None (fórmula sin resolver), distribuir equitativamente
     if any(v is None for v in pesos.values()):
         n = len(pesos)
         pesos = {k: 1 / n for k in pesos}
 
-    # Normalizar a suma 1.0
     total = sum(pesos.values())
+    if total == 0:
+        n = len(pesos)
+        return {k: 1 / n for k in pesos}
     return {k: v / total for k, v in pesos.items()}
 
 
-def _score_ponderado(scores_dim: dict, pesos_dim: dict) -> float:
-    total = 0.0
-    peso_acumulado = 0.0
-    for id_dim, data in scores_dim.items():
-        peso = pesos_dim.get(id_dim, 1 / len(scores_dim))
-        total += data["score"] * peso
-        peso_acumulado += peso
-    if peso_acumulado == 0:
-        return 0.0
-    return round(total / peso_acumulado, 2)
+def _pesos_preguntas(grupo_subdim: pd.DataFrame) -> dict:
+    """
+    Peso de cada pregunta dentro de su subdimensión, según la columna
+    "Peso pregunta en dimensión (%)" de la hoja 3_Preguntas (a pesar del
+    nombre, el valor está definido por subdimensión: las preguntas de una
+    misma subdimensión suman 1.0 entre ellas).
+    """
+    pesos = {}
+    for _, row in grupo_subdim.iterrows():
+        id_p = row["ID Pregunta"].strip()
+        peso = row["Peso pregunta en dimensión (%)"]
+        try:
+            peso = float(peso)
+            pesos[id_p] = None if pd.isna(peso) else peso
+        except (TypeError, ValueError):
+            pesos[id_p] = None
+
+    return _normalizar_pesos(pesos)
+
+
+def _pesos_subdimensiones(dimensiones_df: pd.DataFrame, id_dim: str) -> dict:
+    """
+    Peso de cada subdimensión dentro de su dimensión, según la columna
+    "Peso Dimensión (%)" de la hoja 2_Dimensiones (cada fila de esa hoja
+    es una subdimensión; sus pesos suman 1.0 dentro de cada dimensión).
+    """
+    filas = dimensiones_df[dimensiones_df["ID Dimensión"].str.strip() == id_dim]
+
+    pesos = {}
+    for _, row in filas.iterrows():
+        subdim = row["Subdimensión"]
+        peso = row["Peso Dimensión (%)"]
+        try:
+            peso = float(peso)
+            pesos[subdim] = None if pd.isna(peso) else peso
+        except (TypeError, ValueError):
+            pesos[subdim] = None
+
+    return _normalizar_pesos(pesos)
