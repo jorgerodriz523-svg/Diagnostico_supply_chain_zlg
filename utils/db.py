@@ -566,11 +566,18 @@ def obtener_respuestas_diagnostico(id_diagnostico: int) -> dict:
     return respuestas
 
 
-def marcar_diagnostico_completo(id_diagnostico: int, scores: dict, fecha: str) -> None:
+def marcar_diagnostico_completo(
+    id_diagnostico: int,
+    scores_por_modulo: dict[str, dict],   # {id_modulo: resultado de calcular_scores()}
+    score_general: float,
+    fecha: str,
+) -> None:
     """
-    Cierra el diagnóstico: lo marca 'completo', fija el score general y
-    reemplaza los scores por dimensión. Sustituye el INSERT único que
-    antes hacía guardar_diagnostico al final del cuestionario.
+    Cierra el diagnóstico: lo marca 'completo', fija el score general
+    (ya agregado por el caller entre todos los módulos evaluados) y
+    reemplaza los scores por dimensión de cada módulo. Sustituye el
+    INSERT único que antes hacía guardar_diagnostico al final del
+    cuestionario.
     """
     ahora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     conn = _conectar()
@@ -580,7 +587,7 @@ def marcar_diagnostico_completo(id_diagnostico: int, scores: dict, fecha: str) -
             UPDATE diagnosticos
             SET estado = 'completo', score_general = ?, fecha = ?, actualizado_en = ?
             WHERE id_diagnostico = ?
-        """), (scores["score_general"], fecha, ahora, id_diagnostico))
+        """), (score_general, fecha, ahora, id_diagnostico))
 
         # Se reemplazan (no se acumulan) por si el diagnóstico se cierra
         # más de una vez tras una reapertura.
@@ -588,23 +595,19 @@ def marcar_diagnostico_completo(id_diagnostico: int, scores: dict, fecha: str) -
             DELETE FROM scores_dimensiones WHERE id_diagnostico = ?
         """), (id_diagnostico,))
 
-        cursor.execute(_sql("""
-            SELECT modulos_aplicados FROM diagnosticos WHERE id_diagnostico = ?
-        """), (id_diagnostico,))
-        modulos_aplicados = json.loads(dict(cursor.fetchone())["modulos_aplicados"] or "[]")
-
-        for id_dim, data in scores["dimensiones"].items():
-            cursor.execute(_sql("""
-                INSERT INTO scores_dimensiones
-                    (id_diagnostico, id_modulo, id_dimension, nombre_dimension, score)
-                VALUES (?, ?, ?, ?, ?)
-            """), (
-                id_diagnostico,
-                modulos_aplicados[0] if modulos_aplicados else "",
-                id_dim,
-                data["nombre"],
-                data["score"],
-            ))
+        for id_modulo, scores in scores_por_modulo.items():
+            for id_dim, data in scores["dimensiones"].items():
+                cursor.execute(_sql("""
+                    INSERT INTO scores_dimensiones
+                        (id_diagnostico, id_modulo, id_dimension, nombre_dimension, score)
+                    VALUES (?, ?, ?, ?, ?)
+                """), (
+                    id_diagnostico,
+                    id_modulo,
+                    id_dim,
+                    data["nombre"],
+                    data["score"],
+                ))
 
         conn.commit()
     except Exception as e:
