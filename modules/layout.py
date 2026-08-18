@@ -190,9 +190,12 @@ def _nav_item(clave, icono, nombre, activa, habilitado):
 def _formatear_opcion_arbol(id_p: str, respuestas: dict, id_actual: str | None) -> str:
     """Etiqueta de una pregunta dentro del st.radio del árbol: la pregunta
     actual se muestra sin símbolo (el resaltado ya la distingue vía CSS
-    :has(input:checked)); las demás llevan ●/○ coloreado según su estado."""
+    :has(input:checked)); las demás llevan ●/○ coloreado según su estado.
+    Si la pregunta ya tiene respuesta guardada, se agrega el nivel elegido
+    (0-5) junto al número, ej. "Pregunta 4 (4)"."""
     numero = id_p.split("-")[1]
-    label  = f"Pregunta {numero}"
+    nivel  = respuestas.get(id_p, {}).get("nivel")
+    label  = f"Pregunta {numero} ({nivel})" if nivel is not None else f"Pregunta {numero}"
     if id_p == id_actual:
         return label
     if id_p in respuestas:

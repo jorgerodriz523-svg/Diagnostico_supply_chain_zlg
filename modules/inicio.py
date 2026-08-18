@@ -267,7 +267,7 @@ def render():
         st.markdown('<p class="zl-label">Nombre de la empresa</p>', unsafe_allow_html=True)
         empresa_retomar = st.text_input(
             "empresa_retomar", label_visibility="collapsed",
-            placeholder="Ej: Haceb S.A.",
+            placeholder="Ej: Empresa S.A.",
             key="input_empresa_retomar",
         )
 
@@ -327,7 +327,7 @@ def render():
         st.markdown('<p class="zl-label">Nombre de la empresa</p>', unsafe_allow_html=True)
         empresa_resultados = st.text_input(
             "empresa_resultados", label_visibility="collapsed",
-            placeholder="Ej: Haceb S.A.",
+            placeholder="Ej: Empresa S.A.",
             key="input_empresa_resultados",
         )
 
@@ -382,7 +382,7 @@ def render():
     st.markdown('<p class="zl-label">Nombre de la empresa</p>', unsafe_allow_html=True)
     empresa = st.text_input(
         "empresa", label_visibility="collapsed",
-        placeholder="Ej: Haceb S.A.",
+        placeholder="Ej: Empresa S.A.",
         value=st.session_state.get("empresa", ""),
     )
 
