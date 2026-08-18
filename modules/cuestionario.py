@@ -5,11 +5,15 @@ Pantalla 3: Cuestionario pregunta a pregunta con escala 0–5.
 Navega módulo por módulo; al terminar todos pasa a resultados.
 """
 
+import logging
+
 import streamlit as st
 from utils.loader import get_preguntas, get_opciones_modulo
 from utils.scoring import calcular_score_pregunta
 from utils.db import guardar_respuesta_incremental
 from modules.layout import render_sidebar, render_content_header
+
+logger = logging.getLogger(__name__)
 
 NIVEL_LABELS = {
     0: ("0 — Inexistente",      "#FF0303", "🔴"),
@@ -61,6 +65,9 @@ def _registrar_respuesta(respuestas, id_pregunta, id_modulo, id_dimension, subdi
                 observacion=observacion,
             )
         except Exception as e:
+            logger.exception(
+                "Error guardando respuesta incremental (id_diagnostico=%s, id_pregunta=%s)",
+                id_diagnostico, id_pregunta)
             st.warning(f"No se pudo guardar automáticamente la respuesta: {e}")
 
     return puntaje

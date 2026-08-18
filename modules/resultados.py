@@ -7,6 +7,7 @@ Pantalla 4: Resultados del diagnóstico.
 - Ofrece descarga del HTML, PPTX y matriz de priorización
 """
 
+import logging
 import math
 import streamlit as st
 from datetime import datetime
@@ -21,6 +22,8 @@ from generar_datos  import (
 )
 from modules.layout import render_sidebar, render_content_header, NOMBRE_MODULO
 from modules.seleccion_modulos import MODULO_META
+
+logger = logging.getLogger(__name__)
 
 LOGO_ZL   = str(Path(__file__).parent.parent / "assets" / "logo_zonalogistica.png")
 TEMPLATE  = str(Path(__file__).parent.parent / "assets" / "dashboard_template.html")
@@ -296,6 +299,8 @@ def render():
                 )
             st.session_state["diagnostico_guardado"] = True
         except Exception as e:
+            logger.exception(
+                "Error cerrando diagnóstico en BD (id_diagnostico=%s)", id_diagnostico)
             st.warning(f"No se pudo guardar en la base de datos: {e}")
 
     # ── Paso 3: un bloque completo de resultados por cada módulo evaluado ─────
@@ -438,6 +443,8 @@ def render():
                             key=f"btn_dl_html_{id_m}",
                         )
                 except FileNotFoundError:
+                    logger.error(
+                        "Template HTML no encontrado en assets/ (id_modulo=%s)", id_m)
                     st.warning("Template HTML no encontrado en assets/.")
 
             # PowerPoint
@@ -455,9 +462,12 @@ def render():
                             key=f"btn_dl_pptx_{id_m}",
                         )
                 except RuntimeError as e:
-                    msg = str(e)
-                    st.warning(msg)
+                    logger.warning(
+                        "Kaleido no pudo generar el PPTX (id_modulo=%s): %s", id_m, e)
+                    st.warning(str(e))
                 except Exception as e:
+                    logger.exception(
+                        "Error inesperado generando el PPTX (id_modulo=%s)", id_m)
                     st.warning(f"No se pudo generar el PowerPoint: {e}")
 
             # Matriz de priorización
@@ -486,6 +496,8 @@ def render():
                                 key=f"btn_dl_matriz_{id_m}",
                             )
                 except Exception as e:
+                    logger.exception(
+                        "Error generando la matriz de priorización (id_modulo=%s)", id_m)
                     st.warning(f"No se pudo generar la matriz: {e}")
 
     # ── Nuevo diagnóstico ─────────────────────────────────────────────────────

@@ -9,8 +9,19 @@ Ejecutar:
     streamlit run app.py
 """
 
+import logging
+
 import streamlit as st
 from utils.db import inicializar_bd
+
+# ── Logging ────────────────────────────────────────────────────────────────────
+# Los `except Exception` que muestran un st.warning/st.error al usuario también
+# registran aquí el traceback completo, para que el fallo real quede en los
+# logs del servidor en vez de perderse en el próximo rerun de Streamlit.
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+)
 
 # ── Configuración de página ───────────────────────────────────────────────────
 st.set_page_config(
