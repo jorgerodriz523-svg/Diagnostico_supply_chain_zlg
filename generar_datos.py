@@ -635,17 +635,18 @@ def _slide_base(prs, titulo_seccion: str, ruta_logo: str | None,
     return slide, W, H, HEADER_H
 
 
-def generar_pptx(
+def _construir_presentacion_pptx(
     payload       : dict,
     id_modulo     : str,
     ruta_logo     : str | None = None,
     ruta_logo_zona: str | None = None,
-    salida        : str = "presentacion_diagnostico.pptx",
-) -> None:
+    verbose       : bool = False,
+):
     """
-    Genera el PowerPoint con 3 diapositivas.
-    Diapositiva 3 se construye dinámicamente según el layout_pptx
-    del módulo activo, sin claves hardcodeadas.
+    Arma el objeto Presentation con las 3 diapositivas del diagnóstico.
+    Diapositiva 3 se construye dinámicamente según el layout_pptx del
+    módulo activo, sin claves hardcodeadas. Compartida por generar_pptx()
+    (guarda a disco) y generar_pptx_bytes() (botón de descarga de Streamlit).
 
     Requiere: pip install python-pptx plotly kaleido
     Kaleido necesita Google Chrome: ejecuta `plotly_get_chrome` si no está instalado.
@@ -653,7 +654,8 @@ def generar_pptx(
     from pptx import Presentation
     from pptx.util import Inches
 
-    print("⏳ Generando PowerPoint...")
+    if verbose:
+        print("⏳ Generando PowerPoint...")
 
     cfg          = CONFIG_MODULOS[id_modulo]
     layout_pptx  = cfg["layout_pptx"]
@@ -677,7 +679,8 @@ def generar_pptx(
     for i, g in enumerate(payload["gauges"]):
         buf = _fig_to_png(_construir_gauge(g), 600, 500)
         slide1.shapes.add_picture(buf, gap + i * (gw + gap), gy, width=gw, height=gh)
-    print("  ✓ Diapositiva 1 (Gauges)")
+    if verbose:
+        print("  ✓ Diapositiva 1 (Gauges)")
 
     # ── Diapositiva 2: Barras + Radar general ─────────────────────────────────
     slide2, W, H, _ = _slide_base(
@@ -691,7 +694,8 @@ def generar_pptx(
         _fig_to_png(_construir_radar(
             payload["radar_general"], "Madurez — Vista General"), 700, 600),
         Inches(0.15) + half_w + Inches(0.2), ct, width=half_w, height=ch)
-    print("  ✓ Diapositiva 2 (Barras + Radar general)")
+    if verbose:
+        print("  ✓ Diapositiva 2 (Barras + Radar general)")
 
     # ── Diapositiva 3: Dimensiones (dinámico por módulo) ─────────────────────
     slide3, W, H, _ = _slide_base(
@@ -739,7 +743,22 @@ def generar_pptx(
                 rx + j * ancho_inf, bot_y,
                 width=ancho_inf, height=bot_h)
 
-    print("  ✓ Diapositiva 3 (Dimensiones)")
+    if verbose:
+        print("  ✓ Diapositiva 3 (Dimensiones)")
+
+    return prs
+
+
+def generar_pptx(
+    payload       : dict,
+    id_modulo     : str,
+    ruta_logo     : str | None = None,
+    ruta_logo_zona: str | None = None,
+    salida        : str = "presentacion_diagnostico.pptx",
+) -> None:
+    """Genera el PowerPoint con 3 diapositivas y lo guarda en disco."""
+    prs = _construir_presentacion_pptx(
+        payload, id_modulo, ruta_logo, ruta_logo_zona, verbose=True)
     prs.save(salida)
     print(f"✅ PowerPoint generado: {salida}")
 
@@ -755,74 +774,8 @@ def generar_pptx_bytes(
     Usado por Streamlit para el botón de descarga sin escribir disco.
     """
     import io
-    from pptx import Presentation
-    from pptx.util import Inches
-
-    cfg         = CONFIG_MODULOS[id_modulo]
-    layout_pptx = cfg["layout_pptx"]
-    idx_radares = {rd["clave"]: rd for rd in payload["radares_dimensiones"]}
-
-    prs = Presentation()
-    prs.slide_width  = Inches(13.33)
-    prs.slide_height = Inches(7.5)
-
-    CONTENT_TOP = 0.95
-    CONTENT_H   = 7.5 - CONTENT_TOP - 0.25
-
-    slide1, W, H, _ = _slide_base(prs, "1 · Resumen ejecutivo de madurez", ruta_logo, ruta_logo_zona)
-    gw = Inches(3.1); gh = Inches(2.6)
-    gy = Inches(CONTENT_TOP + (CONTENT_H - 2.6) / 2)
-    gap = (W - gw * 4) / 5
-    for i, g in enumerate(payload["gauges"]):
-        slide1.shapes.add_picture(_fig_to_png(_construir_gauge(g), 600, 500),
-                                  gap + i * (gw + gap), gy, width=gw, height=gh)
-
-    slide2, W, H, _ = _slide_base(prs, "2 · Consolidado de indicadores", ruta_logo, ruta_logo_zona)
-    half_w = (W - Inches(0.5)) / 2
-    ch = Inches(CONTENT_H - 0.1); ct = Inches(CONTENT_TOP)
-    slide2.shapes.add_picture(
-        _fig_to_png(_construir_barras(payload["barras_dimensiones"]), 900, 600),
-        Inches(0.15), ct, width=half_w, height=ch)
-    slide2.shapes.add_picture(
-        _fig_to_png(_construir_radar(payload["radar_general"], "Madurez — Vista General"), 700, 600),
-        Inches(0.15) + half_w + Inches(0.2), ct, width=half_w, height=ch)
-
-    slide3, W, H, _ = _slide_base(prs, "3 · Dimensiones de la evaluación", ruta_logo, ruta_logo_zona)
-    ct = Inches(CONTENT_TOP); ch = Inches(CONTENT_H)
-    tri_w = Inches(4.8)
-    slide3.shapes.add_picture(
-        _fig_to_png(_construir_radar(payload["radar_triangular"], "Madurez Logística",
-                                     gridshape="linear"), 620, 700),
-        Inches(0.1), ct, width=tri_w, height=ch)
-
-    rx = Inches(0.1) + tri_w + Inches(0.15)
-    rw = W - rx - Inches(0.1)
-    clave_principal = layout_pptx["radar_principal"]
-    rd_principal    = idx_radares.get(clave_principal)
-    if rd_principal:
-        top_h = ch * 0.50
-        slide3.shapes.add_picture(
-            _fig_to_png(_construir_radar(rd_principal["datos"], rd_principal["titulo"],
-                        gridshape=rd_principal["gridshape"],
-                        es_estructura=rd_principal["es_estructura"]), 700, 420),
-            rx, ct, width=rw, height=top_h)
-    else:
-        top_h = Inches(0)
-
-    claves_inf = layout_pptx["radares_inferiores"]
-    rds_inf    = [idx_radares[c] for c in claves_inf if c in idx_radares]
-    bot_h      = ch - top_h - Inches(0.1)
-    bot_y      = ct + top_h + Inches(0.1)
-    n_inf      = len(rds_inf)
-    if n_inf > 0:
-        ancho_inf = rw / n_inf
-        for j, rd_inf in enumerate(rds_inf):
-            slide3.shapes.add_picture(
-                _fig_to_png(_construir_radar(rd_inf["datos"], rd_inf["titulo"],
-                            gridshape=rd_inf["gridshape"],
-                            es_estructura=rd_inf["es_estructura"]), 500, 380),
-                rx + j * ancho_inf, bot_y, width=ancho_inf, height=bot_h)
-
+    prs = _construir_presentacion_pptx(
+        payload, id_modulo, ruta_logo, ruta_logo_zona, verbose=False)
     buf = io.BytesIO()
     prs.save(buf)
     buf.seek(0)
@@ -836,19 +789,19 @@ def generar_pptx_bytes(
 # desde las estrategias y sus atributos (impacto, urgencia, inversión).
 # ══════════════════════════════════════════════════════════════════════════════
 
-def generar_matriz(
+def _construir_figura_matriz(
     estrategias : list,
     impacto     : list,
     urgencia    : list,
     inversion   : list,
     descripciones: list = None,
-    salida      : str = "Matriz Priorización de Palancas.html",
-) -> None:
+):
     """
-    Genera la matriz de priorización de estrategias como HTML interactivo.
-    Los cuatro parámetros de lista deben tener la misma longitud.
-    Si `descripciones` es None, se usa el label de cada estrategia como
-    descripción en el tooltip.
+    Arma la figura Plotly de la matriz de priorización de estrategias. Los
+    cuatro parámetros de lista deben tener la misma longitud. Si
+    `descripciones` es None, se usa el label de cada estrategia como
+    descripción en el tooltip. Compartida por generar_matriz() (guarda a
+    disco) y generar_matriz_bytes() (botón de descarga de Streamlit).
     """
     import plotly.graph_objects as go
     from collections import defaultdict
@@ -962,6 +915,22 @@ def generar_matriz(
         ),
     )
 
+    return fig
+
+
+def generar_matriz(
+    estrategias : list,
+    impacto     : list,
+    urgencia    : list,
+    inversion   : list,
+    descripciones: list = None,
+    salida      : str = "Matriz Priorización de Palancas.html",
+) -> None:
+    """
+    Genera la matriz de priorización de estrategias como HTML interactivo
+    y la guarda en disco.
+    """
+    fig = _construir_figura_matriz(estrategias, impacto, urgencia, inversion, descripciones)
     fig.write_html(salida)
     print(f"✅ Matriz de priorización generada: {salida}")
 
@@ -973,117 +942,8 @@ def generar_matriz_bytes(
     """
     Igual que generar_matriz() pero retorna el HTML como bytes en memoria.
     Usado por Streamlit para el botón de descarga.
-    Si `descripciones` es None, se usa el label de cada estrategia como
-    descripción en el tooltip.
     """
-    import plotly.graph_objects as go
-    from collections import defaultdict
-    import math
-
-    FONT        = "Poppins, Arial, sans-serif"
-    COLOR_NAVY  = "#003049"
-    INK_SOFT    = "#9AA1AC"
-    COLOR_SCALE = [[0.0, "#0056A6"], [0.5, "#00A3E0"], [1.0, "#9ACD00"]]
-
-    if descripciones is None:
-        descripciones = list(estrategias)
-    desc_cortas = [
-        (desc[:120] + "...") if len(desc) > 120 else desc
-        for desc in descripciones
-    ]
-
-    JITTER_RADIO = 0.45
-    grupos = defaultdict(list)
-    for i, (x, y) in enumerate(zip(urgencia, impacto)):
-        grupos[(x, y)].append(i)
-
-    urgencia_jit = list(urgencia)
-    impacto_jit  = list(impacto)
-    for (x, y), indices in grupos.items():
-        n = len(indices)
-        if n == 1:
-            continue
-        for k, idx in enumerate(indices):
-            angulo = 2 * math.pi * k / n
-            urgencia_jit[idx] = x + JITTER_RADIO * math.cos(angulo)
-            impacto_jit[idx]  = y + JITTER_RADIO * math.sin(angulo)
-
-    posiciones_texto = [
-        "top center", "middle right", "bottom center", "middle left",
-        "top right", "bottom right", "bottom left", "top left",
-    ]
-    text_positions_tmp = []
-    for (x, y), indices in grupos.items():
-        n = len(indices)
-        for k, idx in enumerate(indices):
-            pos = "top center" if n == 1 else posiciones_texto[k % len(posiciones_texto)]
-            text_positions_tmp.append((idx, pos))
-    text_positions = [pos for _, pos in sorted(text_positions_tmp, key=lambda t: t[0])]
-
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(
-        x=urgencia_jit, y=impacto_jit,
-        mode="markers+text",
-        text=estrategias, textposition=text_positions,
-        textfont=dict(family=FONT, size=11, color=COLOR_NAVY),
-        marker=dict(
-            size=inversion, sizemode="area",
-            sizeref=2.0 * max(inversion) / (60.0 ** 2), sizemin=1,
-            color=inversion, colorscale=COLOR_SCALE,
-            showscale=True, opacity=1,
-            colorbar=dict(
-                title=dict(text="Inversión", font=dict(family=FONT, size=12, color=COLOR_NAVY)),
-                tickfont=dict(family=FONT, color=INK_SOFT),
-            ),
-            line=dict(width=0.5, color=COLOR_NAVY),
-        ),
-        customdata=list(zip(urgencia, impacto, desc_cortas)),
-        hovertemplate=(
-            "<b>Palanca %{text}</b><br>"
-            "<br>"
-            "%{customdata[2]}<br>"
-            "<br>"
-            "Urgencia: %{customdata[0]}<br>"
-            "Impacto: %{customdata[1]}<br>"
-            "Inversión: %{marker.size:.0f}<br>"
-            "<extra></extra>"
-        ),
-    ))
-    for x0, x1, y0, y1 in [(5.0, 5.0, 0, 12.0), (0, 12.0, 5.0, 5.0)]:
-        fig.add_shape(type="line", x0=x0, x1=x1, y0=y0, y1=y1,
-                      line=dict(color=INK_SOFT, width=1, dash="dash"))
-    for x, y, texto in [
-        (7.5, 9.5, "Estratégicas"),  (2.5, 9.5, "Oportunidades"),
-        (2.5, 0.5, "Básicas"),       (7.5, 0.5, "Operativas"),
-    ]:
-        fig.add_annotation(x=x, y=y, text=texto, showarrow=False,
-                           font=dict(family=FONT, size=16, color=INK_SOFT))
-    fig.update_layout(
-        title=dict(text="<b>Matriz de priorización de Palancas</b>",
-                   font=dict(family=FONT, size=18, color=COLOR_NAVY),
-                   x=0.5, xanchor="center"),
-        xaxis=dict(title=dict(text="Urgencia", font=dict(family=FONT, size=13, color=INK_SOFT)),
-                   range=[0, 12.0], tickfont=dict(family=FONT, color=INK_SOFT),
-                   gridcolor="#EEF0F3", linecolor="#EEF0F3"),
-        yaxis=dict(title=dict(text="Impacto", font=dict(family=FONT, size=13, color=INK_SOFT)),
-                   range=[0, 12.0], tickfont=dict(family=FONT, color=INK_SOFT),
-                   gridcolor="#EEF0F3", linecolor="#EEF0F3"),
-        font=dict(family=FONT),
-        height=550, width=700,
-        plot_bgcolor="white", paper_bgcolor="white",
-        hoverlabel=dict(
-            bgcolor="#003049",
-            bordercolor="#A8DC00",
-            font=dict(
-                family="Poppins, Arial",
-                size=12,
-                color="#ffffff"
-            ),
-            align="left",
-            namelength=-1
-        ),
-    )
-
+    fig = _construir_figura_matriz(estrategias, impacto, urgencia, inversion, descripciones)
     return fig.to_html(full_html=True, include_plotlyjs="cdn").encode("utf-8")
 
 

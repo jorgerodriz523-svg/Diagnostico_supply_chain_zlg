@@ -6,18 +6,28 @@ Toda la app consume estas funciones; si el Excel cambia, solo cambia este archiv
 """
 
 import pandas as pd
-from functools import lru_cache
 from pathlib import Path
 
 EXCEL_PATH = Path(__file__).parent.parent / "config" / "Parametrizacion_Almacenamiento_MOD01.xlsx"
 
+_cache: dict[str, pd.DataFrame] | None = None
+_cache_mtime: float | None = None
 
-@lru_cache(maxsize=1)
+
 def _cargar_excel() -> dict[str, pd.DataFrame]:
     """
-    Carga todas las hojas relevantes del Excel en memoria.
-    lru_cache garantiza que solo se lee una vez por sesión de Streamlit.
+    Carga todas las hojas relevantes del Excel en memoria. Se cachea en
+    memoria del proceso y solo se vuelve a leer si el archivo cambió en
+    disco desde la última carga (comparando su fecha de modificación), así
+    una edición del Excel de parametrización se refleja sin necesidad de
+    reiniciar la app.
     """
+    global _cache, _cache_mtime
+
+    mtime_actual = EXCEL_PATH.stat().st_mtime
+    if _cache is not None and _cache_mtime == mtime_actual:
+        return _cache
+
     hojas = {
         "modulos"     : "1_Modulos",
         "dimensiones" : "2_Dimensiones",
@@ -25,10 +35,12 @@ def _cargar_excel() -> dict[str, pd.DataFrame]:
         "opciones"    : "4_Opciones_Pesos",
         "estrategias" : "5_Estrategias",
     }
-    return {
+    _cache = {
         key: pd.read_excel(EXCEL_PATH, sheet_name=hoja, skiprows=2)
         for key, hoja in hojas.items()
     }
+    _cache_mtime = mtime_actual
+    return _cache
 
 
 # ── Funciones públicas ────────────────────────────────────────────────────────

@@ -5,6 +5,7 @@ Pantalla 1: Bienvenida e identificación del cliente.
 Recoge empresa, responsable y sector antes de iniciar el diagnóstico.
 """
 
+import logging
 import re
 import streamlit as st
 from pathlib import Path
@@ -15,6 +16,8 @@ from utils.db import (
     buscar_diagnostico_completado,
     obtener_respuestas_diagnostico,
 )
+
+logger = logging.getLogger(__name__)
 
 LOGO_ZL = Path(__file__).parent.parent / "assets" / "logo_zonalogistica.png"
 
@@ -289,6 +292,9 @@ def render():
                     encontrado = buscar_diagnostico_en_progreso(
                         correo_retomar.strip(), empresa_retomar.strip())
                 except Exception:
+                    logger.exception(
+                        "Error buscando diagnóstico en progreso (correo=%s, empresa=%s)",
+                        correo_retomar.strip(), empresa_retomar.strip())
                     encontrado = None
                     hubo_error_conexion = True
 
@@ -349,6 +355,9 @@ def render():
                     encontrado = buscar_diagnostico_completado(
                         correo_resultados.strip(), empresa_resultados.strip())
                 except Exception:
+                    logger.exception(
+                        "Error buscando diagnóstico completado (correo=%s, empresa=%s)",
+                        correo_resultados.strip(), empresa_resultados.strip())
                     encontrado = None
                     hubo_error_conexion = True
 

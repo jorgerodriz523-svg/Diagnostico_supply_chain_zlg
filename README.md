@@ -32,6 +32,8 @@ matriz de priorización descargables.
 │   ├── scoring.py               → 🧮 calcula scores por dimensión y nivel de madurez
 │   └── db.py                    → 🗄️ persistencia en SQLite (database/diagnosticos.db)    
 │
+├── 📁tests/                  → ✅ pruebas automatizadas (hoy: utils/scoring.py)
+│
 └── generar_datos.py           → 📤 arma el payload de resultados y genera HTML/PPTX/matriz
 
 ```
@@ -53,6 +55,18 @@ cuestionario se agrega/quita independientemente sin afectar el motor de scoring.
 ```bash
 pip install -r requirements.txt
 streamlit run app.py
+```
+
+## ✅ Tests
+
+`utils/scoring.py` (el cálculo de madurez pregunta → subdimensión →
+dimensión → score general) tiene su propia suite en `tests/`, con casos
+de ponderación aislados y de regresión contra la parametrización real de
+MOD-01.
+
+```bash
+pip install -r requirements-dev.txt
+pytest tests/
 ```
 
 ## 🧩 Personalización del diagnóstico
