@@ -19,6 +19,7 @@ from utils.db       import inicializar_bd, marcar_diagnostico_completo
 from generar_datos  import (
     construir_payload, validar_payload,
     generar_html_bytes, generar_pptx_bytes, generar_matriz_bytes,
+    generar_pdf_estrategias_bytes,
 )
 from modules.layout import render_sidebar, render_content_header, NOMBRE_MODULO
 from modules.seleccion_modulos import MODULO_META
@@ -221,6 +222,10 @@ def render():
     }
     [class*="st-key-dl_matriz_"] .stDownloadButton > button {
         background: #0056A6 !important; color: #ffffff !important;
+        border: none !important;
+    }
+    [class*="st-key-dl_pdf_"] .stDownloadButton > button {
+        background: #5C8A00 !important; color: #ffffff !important;
         border: none !important;
     }
 
@@ -428,7 +433,7 @@ def render():
             )
             validar_payload(payload)
 
-            col_d1, col_d2, col_d3 = st.columns(3)
+            col_d1, col_d2, col_d3, col_d4 = st.columns(4)
 
             # Dashboard HTML
             with col_d1:
@@ -499,6 +504,26 @@ def render():
                     logger.exception(
                         "Error generando la matriz de priorización (id_modulo=%s)", id_m)
                     st.warning(f"No se pudo generar la matriz: {e}")
+
+            # Estrategias en PDF
+            with col_d4:
+                try:
+                    pdf_bytes = generar_pdf_estrategias_bytes(
+                        estrategias, empresa=empresa, nombre_modulo=nombre_modulo,
+                        fecha=fecha, ruta_logo_zona=LOGO_ZL if Path(LOGO_ZL).exists() else None,
+                    )
+                    with st.container(key=f"dl_pdf_{id_m}"):
+                        st.download_button(
+                            label="📄 Estrategias recomendadas (.pdf)",
+                            data=pdf_bytes,
+                            file_name=f"Estrategias_{empresa}_{nombre_modulo}_{fecha}.pdf",
+                            mime="application/pdf",
+                            key=f"btn_dl_pdf_{id_m}",
+                        )
+                except Exception as e:
+                    logger.exception(
+                        "Error generando el PDF de estrategias (id_modulo=%s)", id_m)
+                    st.warning(f"No se pudo generar el PDF de estrategias: {e}")
 
     # ── Nuevo diagnóstico ─────────────────────────────────────────────────────
     with st.container(key="btn_nuevo"):
