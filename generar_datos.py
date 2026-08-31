@@ -948,6 +948,141 @@ def generar_matriz_bytes(
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# SECCIÓN 8B — EXPORTACIÓN PDF DE ESTRATEGIAS
+# Documento con la misma lista de estrategias recomendadas que se muestra en
+# la pantalla de resultados (una tarjeta por estrategia, coloreada según su
+# nivel de brecha).
+# ══════════════════════════════════════════════════════════════════════════════
+
+_BADGE_COLORES_PDF = {
+    "crítica" : "#FF0303",
+    "moderada": "#FFCB03",
+    "leve"    : "#A8DC00",
+}
+
+
+def _construir_pdf_estrategias(
+    estrategias   : list,
+    empresa       : str,
+    nombre_modulo : str,
+    fecha         : str,
+    ruta_logo_zona: str | None = None,
+):
+    """
+    Arma el documento PDF (reportlab) con la lista de estrategias
+    recomendadas. Compartida por generar_pdf_estrategias() (guarda a disco)
+    y generar_pdf_estrategias_bytes() (botón de descarga de Streamlit).
+    """
+    import io
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.units import cm
+    from reportlab.lib import colors
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.platypus import (
+        SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, HRFlowable,
+    )
+
+    COLOR_NAVY = colors.HexColor("#003049")
+    COLOR_INK  = colors.HexColor("#6B7280")
+
+    styles = getSampleStyleSheet()
+    estilo_titulo = ParagraphStyle(
+        "ZL_Titulo", parent=styles["Title"], textColor=COLOR_NAVY, fontSize=18, spaceAfter=4)
+    estilo_sub = ParagraphStyle(
+        "ZL_Sub", parent=styles["Normal"], textColor=COLOR_INK, fontSize=10, spaceAfter=14)
+    estilo_encabezado = ParagraphStyle(
+        "ZL_Encabezado", parent=styles["Normal"], fontSize=9.5, spaceAfter=4)
+    estilo_texto = ParagraphStyle(
+        "ZL_Texto", parent=styles["Normal"], fontSize=10.5, leading=14,
+        textColor=colors.HexColor("#1F2937"), spaceBefore=2, spaceAfter=4)
+    estilo_meta = ParagraphStyle(
+        "ZL_Meta", parent=styles["Normal"], fontSize=8.5, textColor=COLOR_INK)
+
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buf, pagesize=letter,
+        topMargin=1.5 * cm, bottomMargin=1.5 * cm,
+        leftMargin=1.8 * cm, rightMargin=1.8 * cm,
+    )
+
+    elementos = []
+
+    if ruta_logo_zona and os.path.exists(ruta_logo_zona):
+        elementos.append(Image(ruta_logo_zona, width=3.2 * cm, height=1.1 * cm, kind="proportional"))
+        elementos.append(Spacer(1, 0.4 * cm))
+
+    elementos.append(Paragraph("Estrategias recomendadas", estilo_titulo))
+    elementos.append(Paragraph(f"{empresa} &middot; {nombre_modulo} &middot; {fecha}", estilo_sub))
+    elementos.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor("#E5E7EB")))
+    elementos.append(Spacer(1, 0.5 * cm))
+
+    if not estrategias:
+        elementos.append(Paragraph(
+            "No se encontraron estrategias para las respuestas registradas.", estilo_texto))
+    else:
+        for est in estrategias:
+            brecha    = est["nivel_brecha"]
+            color_hex = _BADGE_COLORES_PDF.get(brecha.lower(), "#003049")
+
+            encabezado = Paragraph(
+                f'<b><font color="{color_hex}">{brecha}</font></b>'
+                f'&nbsp;&nbsp;&nbsp;<font color="#6B7280">{est["subdimension"]}</font>',
+                estilo_encabezado,
+            )
+            cuerpo = Paragraph(est["estrategia"], estilo_texto)
+            meta = Paragraph(
+                f"Impacto: {est['impacto']} &nbsp;&middot;&nbsp; Plazo: {est['plazo']}",
+                estilo_meta,
+            )
+
+            tarjeta = Table([[[encabezado, cuerpo, meta]]], colWidths=[doc.width])
+            tarjeta.setStyle(TableStyle([
+                ("LINEBEFORE"  , (0, 0), (0, 0), 3, colors.HexColor(color_hex)),
+                ("BACKGROUND"  , (0, 0), (0, 0), colors.white),
+                ("LEFTPADDING" , (0, 0), (0, 0), 12),
+                ("RIGHTPADDING", (0, 0), (0, 0), 10),
+                ("TOPPADDING"  , (0, 0), (0, 0), 8),
+                ("BOTTOMPADDING", (0, 0), (0, 0), 8),
+            ]))
+            elementos.append(tarjeta)
+            elementos.append(Spacer(1, 0.3 * cm))
+
+    doc.build(elementos)
+    buf.seek(0)
+    return buf
+
+
+def generar_pdf_estrategias(
+    estrategias   : list,
+    empresa       : str,
+    nombre_modulo : str,
+    fecha         : str,
+    ruta_logo_zona: str | None = None,
+    salida        : str = "Estrategias.pdf",
+) -> None:
+    """Genera el PDF de estrategias recomendadas y lo guarda en disco."""
+    buf = _construir_pdf_estrategias(estrategias, empresa, nombre_modulo, fecha, ruta_logo_zona)
+    with open(salida, "wb") as f:
+        f.write(buf.read())
+    print(f"✅ PDF de estrategias generado: {salida}")
+
+
+def generar_pdf_estrategias_bytes(
+    estrategias   : list,
+    empresa       : str,
+    nombre_modulo : str,
+    fecha         : str,
+    ruta_logo_zona: str | None = None,
+) -> bytes:
+    """
+    Igual que generar_pdf_estrategias() pero retorna los bytes en memoria.
+    Usado por Streamlit para el botón de descarga sin escribir disco.
+    """
+    buf = _construir_pdf_estrategias(estrategias, empresa, nombre_modulo, fecha, ruta_logo_zona)
+    return buf.read()
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # SECCIÓN 9 — EJECUCIÓN DIRECTA (modo script, sin Streamlit)
 # Útil para pruebas o regenerar un diagnóstico desde consola.
 # ══════════════════════════════════════════════════════════════════════════════
